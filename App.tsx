@@ -7,10 +7,12 @@ import HistoryChart from './components/HistoryChart';
 import WorkoutHistory from './components/WorkoutHistory';
 import AIAdvisor from './components/AIAdvisor';
 import ImageUpload from './components/ImageUpload';
+import LoginPage from './components/LoginPage';
 import { db } from './services/cloudDatabase';
 import { seedSampleData } from './services/seedSampleData';
 import { exportMemberHistory } from './services/excelService';
-import { Member, Language, Workout } from './types';
+import { getCurrentUser, logout, isAuthenticated, isAdmin } from './services/authService';
+import { Member, Language, Workout, User } from './types';
 import { TRANSLATIONS } from './constants';
 
 const App: React.FC = () => {
@@ -23,11 +25,37 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   
+  // 检查登录状态
   useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
     const fetchData = async () => {
       try {
-        const data = await db.getMembers();
+        let data: Member[];
+        if (isAdmin()) {
+          // 管理员：获取所有会员
+          data = await db.getMembers();
+        } else {
+          // 会员：只获取自己的数据
+          if (user?.memberId) {
+            const allMembers = await db.getMembers();
+            const myMember = allMembers.find(m => m.id === user.memberId);
+            data = myMember ? [myMember] : [];
+          } else {
+            data = [];
+          }
+        }
         setMembers(data);
         if (data.length > 0) setSelectedMemberId(data[0].id);
       } catch (err) {
@@ -35,7 +63,7 @@ const App: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [isLoggedIn, user]);
 
   const selectedMember = members.find(m => m.id === selectedMemberId);
 
@@ -135,6 +163,27 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLoginSuccess = () => {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+      setIsLoggedIn(true);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+    setIsLoggedIn(false);
+    setMembers([]);
+    setSelectedMemberId(null);
+  };
+
+  // 如果未登录，显示登录页面
+  if (!isLoggedIn) {
+    return <LoginPage lang={lang} onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <HashRouter>
       <div className="flex flex-col md:flex-row h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
@@ -143,9 +192,11 @@ const App: React.FC = () => {
           members={members} 
           selectedMemberId={selectedMemberId} 
           onSelectMember={setSelectedMemberId}
-          onAddMember={handleAddMember}
-          onDeleteMember={handleDeleteMember}
+          onAddMember={isAdmin() ? handleAddMember : undefined}
+          onDeleteMember={isAdmin() ? handleDeleteMember : undefined}
           lang={lang}
+          user={user}
+          onLogout={handleLogout}
         />
 
         <div className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -172,11 +223,20 @@ const App: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              <span className="text-xs text-zinc-500">
+                {user?.role === 'admin' ? (lang === 'zh' ? '管理员' : 'Admin') : (lang === 'zh' ? '会员' : 'Member')}: {user?.username}
+              </span>
               <button 
                 onClick={() => setLang(lang === 'en' ? 'zh' : 'en')}
                 className="text-xs font-bold px-3 py-1.5 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-lime-500 transition-colors uppercase"
               >
                 {lang === 'en' ? 'EN / 中文' : '中文 / EN'}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-xs font-bold px-3 py-1.5 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-red-500 transition-colors"
+              >
+                {lang === 'zh' ? '退出' : 'Logout'}
               </button>
             </div>
           </header>
@@ -232,7 +292,9 @@ const App: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 space-y-6">
                     <HistoryChart workouts={selectedMember.workouts} lang={lang} />
-                    <WorkoutForm lang={lang} onSaveSession={handleSaveSession} />
+                    {isAdmin() && (
+                      <WorkoutForm lang={lang} onSaveSession={handleSaveSession} />
+                    )}
                   </div>
 
                   <div className="space-y-6">
@@ -241,16 +303,18 @@ const App: React.FC = () => {
                             workouts={selectedMember.workouts} 
                             lang={lang} 
                             filterMonth={filterMonth}
-                            onUpdateWorkout={handleUpdateWorkout}
-                            onDeleteWorkout={handleDeleteWorkout}
+                            onUpdateWorkout={isAdmin() ? handleUpdateWorkout : undefined}
+                            onDeleteWorkout={isAdmin() ? handleDeleteWorkout : undefined}
                         />
                     </div>
                     <AIAdvisor member={selectedMember} lang={lang} />
-                    <ImageUpload 
-                      lang={lang} 
-                      onUpload={handleUploadPhoto} 
-                      currentImage={selectedMember.photoUrl} 
-                    />
+                    {isAdmin() && (
+                      <ImageUpload 
+                        lang={lang} 
+                        onUpload={handleUploadPhoto} 
+                        currentImage={selectedMember.photoUrl} 
+                      />
+                    )}
                   </div>
                 </div>
               </>

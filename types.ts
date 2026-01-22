@@ -1,5 +1,14 @@
 export type Language = 'en' | 'zh';
 
+export type UserRole = 'admin' | 'member';
+
+export interface User {
+  id: string;
+  username: string;
+  role: UserRole;
+  memberId?: string; // 如果是会员，关联到 members.id
+}
+
 export interface Workout {
   id: string;
   date: string; // YYYY-MM-DD

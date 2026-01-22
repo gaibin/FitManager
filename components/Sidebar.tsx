@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Member, Language } from '../types';
+import { Member, Language, User } from '../types';
 import { TRANSLATIONS } from '../constants';
 
 interface SidebarProps {
   members: Member[];
   selectedMemberId: string | null;
   onSelectMember: (id: string | null) => void;
-  onAddMember: (name: string) => void;
-  onDeleteMember: (id: string) => void;
+  onAddMember?: (name: string) => void;
+  onDeleteMember?: (id: string) => void;
   lang: Language;
+  user?: User | null;
+  onLogout?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -17,7 +19,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSelectMember, 
   onAddMember,
   onDeleteMember,
-  lang 
+  lang,
+  user,
+  onLogout
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -56,17 +60,19 @@ const Sidebar: React.FC<SidebarProps> = ({
         <h2 className="text-xl font-bold text-lime-400 tracking-wider uppercase">
           {TRANSLATIONS.members[lang]}
         </h2>
-        <button 
-          onClick={() => setIsAdding(!isAdding)}
-          className="text-zinc-400 hover:text-white transition-colors"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isAdding ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
-          </svg>
-        </button>
+        {onAddMember && (
+          <button 
+            onClick={() => setIsAdding(!isAdding)}
+            className="text-zinc-400 hover:text-white transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isAdding ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
+            </svg>
+          </button>
+        )}
       </div>
 
-      {isAdding && (
+      {isAdding && onAddMember && (
         <form onSubmit={handleAddSubmit} className="p-4 bg-zinc-900 border-b border-zinc-800 animate-in slide-in-from-top-2">
           <input
             autoFocus
@@ -106,19 +112,41 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <span className="font-medium truncate flex-1">{member.name}</span>
             
-            {/* Delete Button (visible on hover) */}
-            <button
-              onClick={(e) => handleDelete(e, member.id)}
-              className="absolute right-2 p-1 text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-              title="Delete Member"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            {/* Delete Button (visible on hover, only for admin) */}
+            {onDeleteMember && (
+              <button
+                onClick={(e) => handleDelete(e, member.id)}
+                className="absolute right-2 p-1 text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Delete Member"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
           </div>
         ))}
       </div>
+
+      {/* User Info & Logout */}
+      {user && (
+        <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
+          <div className="text-xs text-zinc-500 mb-2">
+            {lang === 'zh' ? '当前用户' : 'Current User'}
+          </div>
+          <div className="text-sm font-medium text-zinc-200 mb-2">
+            {user.username} ({user.role === 'admin' ? (lang === 'zh' ? '管理员' : 'Admin') : (lang === 'zh' ? '会员' : 'Member')})
+          </div>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="w-full text-xs text-red-400 hover:text-red-300 py-2 px-3 rounded-lg border border-red-500/30 hover:border-red-500/50 transition-colors"
+            >
+              {lang === 'zh' ? '退出登录' : 'Logout'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
