@@ -8,7 +8,13 @@ import WorkoutHistory from './components/WorkoutHistory';
 import AIAdvisor from './components/AIAdvisor';
 import ImageUpload from './components/ImageUpload';
 import LoginPage from './components/LoginPage';
-import { db } from './services/mockDatabase';
+import { db as cloudDb } from './services/cloudDatabase';
+import { db as mockDb } from './services/mockDatabase';
+
+// 动态选择数据库：如果环境配置了云端模式且有密钥，则使用云端，否则默认使用 Mock 演示
+const useCloud = import.meta.env.VITE_DB_MODE === 'cloud';
+const db = useCloud ? cloudDb : mockDb;
+
 // import { seedSampleData } from './services/seedSampleData';
 import { exportMemberHistory } from './services/excelService';
 import { getCurrentUser, logout, isAuthenticated, isAdmin } from './services/authService';
