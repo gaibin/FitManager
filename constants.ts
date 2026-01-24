@@ -1,4 +1,5 @@
 import { TranslationDictionary, Member } from './types';
+import { SEED_MEMBERS } from './services/seedData';
 
 export const TRANSLATIONS: TranslationDictionary = {
   dashboard: { en: 'Dashboard', zh: '仪表盘' },
@@ -48,49 +49,13 @@ export const TRANSLATIONS: TranslationDictionary = {
   exportData: { en: 'Export Data (xlsx)', zh: '导出记录 (xlsx)' },
 };
 
-export const INITIAL_MEMBERS: Member[] = [
-  {
-    id: '1',
-    name: 'Alice Chen',
-    avatar: 'https://picsum.photos/200/200?random=1',
-    joinDate: '2023-10-01',
-    workouts: [
-      { id: '101', date: '2023-10-05', exercise: 'Deadlift', weight: 60, sets: 3, reps: 5 },
-      { id: '102', date: '2023-10-08', exercise: 'Squat', weight: 45, sets: 4, reps: 8 },
-      { id: '103', date: '2023-10-12', exercise: 'Deadlift', weight: 65, sets: 3, reps: 5 },
-      { id: '104', date: '2023-10-15', exercise: 'Bench Press', weight: 30, sets: 3, reps: 10 },
-      { id: '105', date: '2023-10-20', exercise: 'Deadlift', weight: 70, sets: 3, reps: 3 },
-      { id: '106', date: '2023-11-02', exercise: 'Squat', weight: 50, sets: 5, reps: 5 },
-      { id: '107', date: '2023-11-02', exercise: 'Bench Press', weight: 32.5, sets: 3, reps: 8 },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Bob Smith',
-    avatar: 'https://picsum.photos/200/200?random=2',
-    joinDate: '2023-09-15',
-    workouts: [
-      { id: '201', date: '2023-09-16', exercise: 'Bench Press', weight: 80, sets: 5, reps: 5 },
-      { id: '202', date: '2023-09-20', exercise: 'Squat', weight: 100, sets: 5, reps: 5 },
-      { id: '203', date: '2023-10-25', exercise: 'Bench Press', weight: 82.5, sets: 5, reps: 5 },
-      { id: '204', date: '2023-11-05', exercise: 'Overhead Press', weight: 40, sets: 4, reps: 8 },
-    ],
-  },
-  {
-    id: '3',
-    name: 'David Liu',
-    avatar: 'https://picsum.photos/200/200?random=3',
-    joinDate: '2023-11-01',
-    workouts: [
-      { id: '301', date: '2023-11-01', exercise: 'Pull Up', weight: 0, sets: 4, reps: 8 },
-      { id: '302', date: '2023-11-03', exercise: 'Barbell Row', weight: 60, sets: 4, reps: 10 },
-    ],
-  },
-  {
-    id: '4',
-    name: 'Sarah Jones',
-    avatar: 'https://picsum.photos/200/200?random=4',
-    joinDate: '2023-08-20',
-    workouts: [],
-  },
-];
+export const INITIAL_MEMBERS: Member[] = SEED_MEMBERS.map((s, idx) => ({
+  id: String(idx + 1),
+  name: s.name,
+  avatar: s.avatar || `https://picsum.photos/200/200?random=${idx}`,
+  joinDate: s.joinDate,
+  workouts: s.workouts.map((w, wIdx) => ({
+    ...w,
+    id: `${idx + 1}-${wIdx}`
+  }))
+}));

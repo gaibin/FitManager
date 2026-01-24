@@ -8,8 +8,8 @@ import WorkoutHistory from './components/WorkoutHistory';
 import AIAdvisor from './components/AIAdvisor';
 import ImageUpload from './components/ImageUpload';
 import LoginPage from './components/LoginPage';
-import { db } from './services/cloudDatabase';
-import { seedSampleData } from './services/seedSampleData';
+import { db } from './services/mockDatabase';
+// import { seedSampleData } from './services/seedSampleData';
 import { exportMemberHistory } from './services/excelService';
 import { getCurrentUser, logout, isAuthenticated, isAdmin } from './services/authService';
 import { Member, Language, Workout, User } from './types';
@@ -183,19 +183,7 @@ const App: React.FC = () => {
   };
 
   const handleSeedDemo = async () => {
-    setSeeding(true);
-    try {
-      const res = await seedSampleData();
-      const data = await db.getMembers();
-      setMembers(data);
-      if (data.length > 0) setSelectedMemberId(data[0].id);
-      console.log('Seed result:', res);
-    } catch (err) {
-      console.error('Seed demo data failed', err);
-      alert('导入示例数据失败，请检查 Supabase 配置或网络。');
-    } finally {
-      setSeeding(false);
-    }
+    alert("当前处于模拟模式，已加载本地演示数据，无需云端导入。");
   };
 
   const handleLoginSuccess = () => {
@@ -218,6 +206,8 @@ const App: React.FC = () => {
   if (!isLoggedIn) {
     return <LoginPage lang={lang} onLoginSuccess={handleLoginSuccess} />;
   }
+
+
 
   return (
     <HashRouter>
