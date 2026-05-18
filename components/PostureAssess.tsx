@@ -5,6 +5,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Language, PostureAssessment, PostureReport, PostureIssue, CorrectionPlan } from '../types';
 import { analyzePosture } from '../services/postureService';
+import { compressImage, validateImage } from '../services/imageUtils';
 import { TRANSLATIONS } from '../constants';
 
 interface PostureAssessProps {
@@ -14,45 +15,6 @@ interface PostureAssessProps {
   heightCm: number;
   gender: 'male' | 'female';
   onSaveAssessment: (assessment: PostureAssessment) => Promise<void>;
-}
-
-// 压缩图片到指定宽度
-function compressImage(file: File, maxWidth = 1920): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
-      };
-      img.onerror = reject;
-      img.src = reader.result as string;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-// 检查图片是否有效
-function validateImage(file: File): string | null {
-  if (!['image/jpeg', 'image/png'].includes(file.type)) {
-    return '仅支持 JPEG / PNG 格式';
-  }
-  if (file.size > 10 * 1024 * 1024) {
-    return '图片大小不能超过 10MB';
-  }
-  return null;
 }
 
 // 严重度颜色

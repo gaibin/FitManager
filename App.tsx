@@ -1,24 +1,31 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * 应用根组件 — 路由 + 状态管理 + 页面分发
+ * 状态逻辑已拆分为自定义 hooks: useAuth / useMembers / useWorkouts
+ */
+
+import React, { useState, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import PostureAssess from './components/PostureAssess';
-import MemberReport from './components/MemberReport';
-import Settings from './components/Settings';
 import LoginPage from './components/LoginPage';
 import { db as cloudDb } from './services/cloudDatabase';
 import { db as mockDb } from './services/mockDatabase';
 import { db as localDb } from './services/localDatabase';
-import { getCurrentUser, logout, isAuthenticated, isAdmin } from './services/authService';
-import { Member, Language, Workout, User, PostureAssessment } from './types';
+import { useAuth } from './hooks/useAuth';
+import { useMembers } from './hooks/useMembers';
+import { useWorkouts } from './hooks/useWorkouts';
+import { Language, Workout } from './types';
 import { TRANSLATIONS } from './constants';
+
+// 按需加载：Report 组件 + PDF 生成库（jsPDF/html2canvas）只在导出时加载
+const MemberReport = lazy(() => import('./components/MemberReport'));
+// 按需加载：设置页（含 AI 配置）
+const Settings = lazy(() => import('./components/Settings'));
 
 // 根据环境选择数据库
 const dbMode = import.meta.env.VITE_DB_MODE || 'mock';
 const db = dbMode === 'cloud' ? cloudDb : dbMode === 'local' ? localDb : mockDb;
-
-// 临时：开发模式跳过登录
-const DEV_SKIP_AUTH = true;
 
 interface AppContentProps {
   lang: Language;
@@ -27,19 +34,20 @@ interface AppContentProps {
   setStudioName: React.Dispatch<React.SetStateAction<string>>;
   editingName: boolean;
   setEditingName: React.Dispatch<React.SetStateAction<boolean>>;
-  members: Member[];
-  setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
+  members: any[];
+  setMembers: React.Dispatch<React.SetStateAction<any[]>>;
   selectedMemberId: string | null;
   setSelectedMemberId: React.Dispatch<React.SetStateAction<string | null>>;
-  user: User | null;
+  user: any;
+  isAdmin: boolean;
   handleLogout: () => void;
   handleAddMember: (name: string) => Promise<void>;
   handleDeleteMember: (id: string) => Promise<void>;
-  handleSaveSession: (workoutsData: (Omit<Workout, 'id'> & { id?: string })[], mode: 'add' | 'edit') => Promise<void>;
+  handleSaveSession: (workouts: (Omit<Workout, 'id'> & { id?: string })[], mode: 'add' | 'edit') => Promise<void>;
   handleUpdateWorkout: (workout: Workout) => Promise<void>;
   handleDeleteWorkout: (workoutId: string) => Promise<void>;
   handleUploadPhoto: (base64: string) => Promise<void>;
-  handleSaveAssessment: (assessment: PostureAssessment) => Promise<void>;
+  handleSaveAssessment: (assessment: any) => Promise<void>;
   filterMonth: string;
   setFilterMonth: React.Dispatch<React.SetStateAction<string>>;
   editingSession: { date: string; workouts: Workout[] } | null;
@@ -48,17 +56,15 @@ interface AppContentProps {
 
 const AppContent: React.FC<AppContentProps> = ({
   lang, setLang, studioName, setStudioName, editingName, setEditingName,
-  members, setMembers, selectedMemberId, setSelectedMemberId,
-  user, handleLogout, handleAddMember, handleDeleteMember,
+  members, selectedMemberId, setSelectedMemberId,
+  user, isAdmin, handleLogout, handleAddMember, handleDeleteMember,
   handleSaveSession, handleUpdateWorkout, handleDeleteWorkout,
   handleUploadPhoto, handleSaveAssessment, filterMonth, setFilterMonth,
   editingSession, setEditingSession,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-
   const selectedMember = members.find(m => m.id === selectedMemberId);
-  const isAdminUser = DEV_SKIP_AUTH || isAdmin();
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
@@ -66,8 +72,8 @@ const AppContent: React.FC<AppContentProps> = ({
         members={members}
         selectedMemberId={selectedMemberId}
         onSelectMember={setSelectedMemberId}
-        onAddMember={isAdminUser ? handleAddMember : undefined}
-        onDeleteMember={isAdminUser ? handleDeleteMember : undefined}
+        onAddMember={isAdmin ? handleAddMember : undefined}
+        onDeleteMember={isAdmin ? handleDeleteMember : undefined}
         lang={lang}
         user={user}
         onLogout={handleLogout}
@@ -126,19 +132,17 @@ const AppContent: React.FC<AppContentProps> = ({
                   filterMonth={filterMonth}
                   onFilterMonthChange={setFilterMonth}
                   onSaveSession={handleSaveSession}
-                  onUpdateWorkout={isAdminUser ? handleUpdateWorkout : async () => {}}
-                  onDeleteWorkout={isAdminUser ? handleDeleteWorkout : async () => {}}
-                  onUploadPhoto={isAdminUser ? handleUploadPhoto : async () => {}}
+                  onUpdateWorkout={isAdmin ? handleUpdateWorkout : async () => {}}
+                  onDeleteWorkout={isAdmin ? handleDeleteWorkout : async () => {}}
+                  onUploadPhoto={isAdmin ? handleUploadPhoto : async () => {}}
                   editingSession={editingSession}
-                  onEditSession={isAdminUser ? (date, workouts) => setEditingSession({ date, workouts }) : () => {}}
+                  onEditSession={isAdmin ? (date, workouts) => setEditingSession({ date, workouts }) : () => {}}
                   onCancelEdit={() => setEditingSession(null)}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-zinc-500">
                   <div className="text-center space-y-3">
-                    <div className="text-xl font-bold text-zinc-400">
-                      {TRANSLATIONS.selectMember[lang]}
-                    </div>
+                    <div className="text-xl font-bold text-zinc-400">{TRANSLATIONS.selectMember[lang]}</div>
                   </div>
                 </div>
               )
@@ -160,15 +164,41 @@ const AppContent: React.FC<AppContentProps> = ({
               )
             } />
             <Route path="/report" element={
-              selectedMember ? (
-                <MemberReport lang={lang} member={selectedMember} studioName={studioName} />
-              ) : (
+              <Suspense fallback={
                 <div className="flex h-full items-center justify-center text-zinc-500">
-                  <div className="text-xl font-bold text-zinc-400">{TRANSLATIONS.selectMember[lang]}</div>
+                  <div className="flex items-center space-x-3">
+                    <svg className="animate-spin h-5 w-5 text-lime-400" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>{lang === 'zh' ? '加载报告中...' : 'Loading report...'}</span>
+                  </div>
                 </div>
-              )
+              }>
+                {selectedMember ? (
+                  <MemberReport lang={lang} member={selectedMember} studioName={studioName} />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-zinc-500">
+                    <div className="text-xl font-bold text-zinc-400">{TRANSLATIONS.selectMember[lang]}</div>
+                  </div>
+                )}
+              </Suspense>
             } />
-            <Route path="/settings" element={<Settings lang={lang} />} />
+            <Route path="/settings" element={
+              <Suspense fallback={
+                <div className="flex h-full items-center justify-center text-zinc-500">
+                  <div className="flex items-center space-x-3">
+                    <svg className="animate-spin h-5 w-5 text-lime-400" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>{lang === 'zh' ? '加载中...' : 'Loading...'}</span>
+                  </div>
+                </div>
+              }>
+                <Settings lang={lang} />
+              </Suspense>
+            } />
           </Routes>
         </main>
       </div>
@@ -181,185 +211,18 @@ const App: React.FC = () => {
   const [studioName, setStudioName] = useState('NEONFIT STUDIO');
   const [editingName, setEditingName] = useState(false);
   const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [members, setMembers] = useState<Member[]>([]);
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const [editingSession, setEditingSession] = useState<{ date: string; workouts: Workout[] } | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // 检查登录状态 (开发模式跳过)
-  useEffect(() => {
-    if (DEV_SKIP_AUTH) {
-      setUser({ id: 'dev', username: 'dev', role: 'admin' });
-      setIsLoggedIn(true);
-      return;
-    }
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      setIsLoggedIn(true);
-    }
-  }, []);
+  // 自定义 hooks 替代原来散落在 App 中的状态
+  const auth = useAuth();
+  const members = useMembers({ db, isAdmin: auth.isAdmin, userId: auth.user?.memberId });
+  const workouts = useWorkouts({
+    db,
+    selectedMemberId: members.selectedMemberId,
+    setMembers: members.setMembers,
+  });
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-
-    const fetchData = async () => {
-      try {
-        let data: Member[];
-        if (DEV_SKIP_AUTH || isAdmin()) {
-          data = await db.getMembers();
-        } else {
-          if (user?.memberId) {
-            const allMembers = await db.getMembers();
-            const myMember = allMembers.find(m => m.id === user.memberId);
-            data = myMember ? [myMember] : [];
-          } else {
-            data = [];
-          }
-        }
-        setMembers(data);
-        if (data.length > 0) setSelectedMemberId(data[0].id);
-      } catch (err) {
-        console.error('Failed to load members', err);
-      }
-    };
-    fetchData();
-  }, [isLoggedIn, user]);
-
-  // --- Handlers ---
-
-  const handleAddMember = async (name: string) => {
-    const newMember = await db.addMember(name);
-    setMembers([...members, newMember]);
-    setSelectedMemberId(newMember.id);
-  };
-
-  const handleDeleteMember = async (id: string) => {
-    await db.deleteMember(id);
-    const remaining = members.filter(m => m.id !== id);
-    setMembers(remaining);
-    if (selectedMemberId === id) {
-      setSelectedMemberId(remaining.length > 0 ? remaining[0].id : null);
-    }
-  };
-
-  const handleSaveSession = async (workoutsData: (Omit<Workout, 'id'> & { id?: string })[], mode: 'add' | 'edit') => {
-    if (!selectedMemberId) return;
-    try {
-      if (mode === 'edit' && editingSession) {
-        const member = members.find(m => m.id === selectedMemberId);
-        const originalWorkoutsOnDate = member?.workouts.filter(w => w.date === editingSession.date) || [];
-
-        for (const ow of originalWorkoutsOnDate) {
-          await db.deleteWorkout(selectedMemberId, ow.id);
-        }
-
-        const workoutsToInsert = workoutsData.map(({ date, exercise, weight, sets, reps }) => ({
-          date, exercise, weight, sets, reps
-        }));
-
-        const newWorkouts = await db.addWorkouts(selectedMemberId, workoutsToInsert);
-
-        setMembers(prev => prev.map(m => {
-          if (m.id === selectedMemberId) {
-            const filtered = m.workouts.filter(w => w.date !== editingSession.date);
-            const updatedWorkouts = [...filtered, ...newWorkouts].sort((a, b) =>
-              new Date(a.date).getTime() - new Date(b.date).getTime()
-            );
-            return { ...m, workouts: updatedWorkouts };
-          }
-          return m;
-        }));
-
-        setEditingSession(null);
-      } else {
-        const newWorkouts = await db.addWorkouts(selectedMemberId, workoutsData as Omit<Workout, 'id'>[]);
-        setMembers(prev => prev.map(m => {
-          if (m.id === selectedMemberId) {
-            const updatedWorkouts = [...m.workouts, ...newWorkouts].sort((a, b) =>
-              new Date(a.date).getTime() - new Date(b.date).getTime()
-            );
-            return { ...m, workouts: updatedWorkouts };
-          }
-          return m;
-        }));
-      }
-    } catch (error) {
-      console.error("Failed to save workouts", error);
-    }
-  };
-
-  const handleUpdateWorkout = async (workout: Workout) => {
-    if (!selectedMemberId) return;
-    await db.updateWorkout(selectedMemberId, workout);
-    setMembers(prev => prev.map(m => {
-      if (m.id === selectedMemberId) {
-        return {
-          ...m,
-          workouts: m.workouts.map(w => w.id === workout.id ? workout : w)
-        };
-      }
-      return m;
-    }));
-  };
-
-  const handleDeleteWorkout = async (workoutId: string) => {
-    if (!selectedMemberId) return;
-    await db.deleteWorkout(selectedMemberId, workoutId);
-    setMembers(prev => prev.map(m => {
-      if (m.id === selectedMemberId) {
-        return {
-          ...m,
-          workouts: m.workouts.filter(w => w.id !== workoutId)
-        };
-      }
-      return m;
-    }));
-  };
-
-  const handleUploadPhoto = async (base64: string) => {
-    if (!selectedMemberId) return;
-    await db.updateMemberPhoto(selectedMemberId, base64);
-    setMembers(prev => prev.map(m => m.id === selectedMemberId ? { ...m, photoUrl: base64 } : m));
-  };
-
-  const handleSaveAssessment = async (assessment: PostureAssessment) => {
-    if (!selectedMemberId) return;
-    await db.saveAssessment(selectedMemberId, assessment);
-    setMembers(prev => prev.map(m => {
-      if (m.id === selectedMemberId) {
-        const existingIdx = m.assessments.findIndex(a => a.date === assessment.date);
-        const updated = [...m.assessments];
-        if (existingIdx >= 0) {
-          updated[existingIdx] = assessment;
-        } else {
-          updated.unshift(assessment);
-        }
-        return { ...m, assessments: updated };
-      }
-      return m;
-    }));
-  };
-
-  const handleLoginSuccess = () => {
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      setIsLoggedIn(true);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    setUser(null);
-    setIsLoggedIn(false);
-    setMembers([]);
-    setSelectedMemberId(null);
-  };
-
-  if (!isLoggedIn) {
-    return <LoginPage lang={lang} onLoginSuccess={handleLoginSuccess} />;
+  if (!auth.isLoggedIn) {
+    return <LoginPage lang={lang} onLoginSuccess={auth.handleLoginSuccess} />;
   }
 
   return (
@@ -368,14 +231,23 @@ const App: React.FC = () => {
         lang={lang} setLang={setLang}
         studioName={studioName} setStudioName={setStudioName}
         editingName={editingName} setEditingName={setEditingName}
-        members={members} setMembers={setMembers}
-        selectedMemberId={selectedMemberId} setSelectedMemberId={setSelectedMemberId}
-        user={user} handleLogout={handleLogout}
-        handleAddMember={handleAddMember} handleDeleteMember={handleDeleteMember}
-        handleSaveSession={handleSaveSession} handleUpdateWorkout={handleUpdateWorkout}
-        handleDeleteWorkout={handleDeleteWorkout} handleUploadPhoto={handleUploadPhoto} handleSaveAssessment={handleSaveAssessment}
+        members={members.members}
+        setMembers={members.setMembers}
+        selectedMemberId={members.selectedMemberId}
+        setSelectedMemberId={members.setSelectedMemberId}
+        user={auth.user}
+        isAdmin={auth.isAdmin}
+        handleLogout={auth.handleLogout}
+        handleAddMember={members.handleAddMember}
+        handleDeleteMember={members.handleDeleteMember}
+        handleSaveSession={workouts.handleSaveSession}
+        handleUpdateWorkout={workouts.handleUpdateWorkout}
+        handleDeleteWorkout={workouts.handleDeleteWorkout}
+        handleUploadPhoto={workouts.handleUploadPhoto}
+        handleSaveAssessment={workouts.handleSaveAssessment}
         filterMonth={filterMonth} setFilterMonth={setFilterMonth}
-        editingSession={editingSession} setEditingSession={setEditingSession}
+        editingSession={workouts.editingSession}
+        setEditingSession={workouts.setEditingSession}
       />
     </HashRouter>
   );
