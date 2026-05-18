@@ -10,6 +10,8 @@ export type SeedMember = {
   name: string;
   joinDate: string;
   avatar?: string;
+  gender?: 'male' | 'female';
+  heightCm?: number;
   workouts: SeedWorkout[];
 };
 
@@ -61,6 +63,8 @@ export const SEED_MEMBERS: SeedMember[] = NAMES.map((name, index) => {
     name,
     joinDate: `2024-${String(startMonth).padStart(2, '0')}-01`,
     avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
+    gender: index % 2 === 0 ? 'female' : 'male',
+    heightCm: 160 + (index % 10) * 2,
     workouts: generateProgressiveWorkouts(startMonth, baseWeight, intensity)
   };
 });

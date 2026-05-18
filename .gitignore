@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+
+# Backend models (large files)
+backend/models/*.onnx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

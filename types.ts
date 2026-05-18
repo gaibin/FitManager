@@ -18,17 +18,68 @@ export interface Workout {
   reps: number;
 }
 
+export interface PostureAssessment {
+  id: string;
+  date: string; // YYYY-MM-DD
+  frontImage: string; // base64 缩略图
+  sideImage: string;
+  backImage?: string;
+  report: PostureReport;
+  correctionPlan: CorrectionPlan;
+  aiRecommendation?: string;
+}
+
+export interface PostureReport {
+  score: number; // 0-100
+  confidence: number;
+  issues: PostureIssue[];
+}
+
+export interface PostureIssue {
+  name: string; // 如 "高低肩"
+  nameEn: string; // 如 "Shoulder Height Imbalance"
+  value: number;
+  unit: string;
+  severity: '正常' | '中度' | '严重' | '低置信度';
+  description: string;
+  descriptionEn: string;
+  exercises: string[];
+  confidence: number;
+}
+
+export interface CorrectionPlan {
+  week1_2: Exercise[];
+  week3_4: Exercise[];
+}
+
+export interface Exercise {
+  name: string;
+  description: string;
+  sets: string; // 如 "3x15" 或 "3x30s"
+}
+
+export interface AIProviderConfig {
+  provider: 'gemini' | 'deepseek' | 'kimi' | 'openai-compatible';
+  apiKey: string;
+  baseUrl: string;
+  modelName: string;
+}
+
 export interface Member {
   id: string;
   name: string;
   avatar: string; // URL or placeholder
   joinDate: string;
+  gender: 'male' | 'female';
+  heightCm: number;
   workouts: Workout[];
+  assessments: PostureAssessment[];
   photoUrl?: string; // For progress pics
 }
 
 export interface StudioConfig {
   name: string;
+  logo?: string;
 }
 
 export interface TranslationDictionary {

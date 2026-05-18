@@ -67,7 +67,10 @@ class CloudDatabase {
       name: m.name,
       avatar: m.avatar,
       joinDate: m.join_date,
+      gender: m.gender || 'male',
+      heightCm: m.height_cm || 170,
       workouts: workoutsByMember[m.id] || [],
+      assessments: [],
       photoUrl: m.photo_url || undefined,
     }));
   }
@@ -104,7 +107,10 @@ class CloudDatabase {
       name: data.name,
       avatar: data.avatar,
       joinDate: data.join_date,
+      gender: data.gender || 'male',
+      heightCm: data.height_cm || 170,
       workouts: [],
+      assessments: [],
       photoUrl: data.photo_url || undefined,
     };
 
@@ -211,6 +217,28 @@ class CloudDatabase {
       console.error('[Supabase] deleteWorkout error', error);
       throw new Error('Failed to delete workout');
     }
+  }
+
+  // --- Posture Assessments (stub for now, can be extended with Supabase table) ---
+  async saveAssessment(memberId: string, assessment: any): Promise<void> {
+    console.warn('[Supabase] saveAssessment not implemented for cloud mode. Assessment stored locally only.');
+  }
+
+  async getAssessments(memberId: string): Promise<any[]> {
+    console.warn('[Supabase] getAssessments not implemented for cloud mode.');
+    return [];
+  }
+
+  async deleteAssessment(memberId: string, assessmentId: string): Promise<void> {
+    console.warn('[Supabase] deleteAssessment not implemented for cloud mode.');
+  }
+
+  async saveAIConfig(config: any): Promise<void> {
+    console.warn('[Supabase] saveAIConfig not implemented for cloud mode.');
+  }
+
+  async getAIConfig(): Promise<any | null> {
+    return null;
   }
 }
 

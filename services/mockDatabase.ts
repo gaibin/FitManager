@@ -1,4 +1,4 @@
-import { Member, Workout } from '../types';
+import { Member, Workout, PostureAssessment } from '../types';
 import { INITIAL_MEMBERS } from '../constants';
 
 class MockDatabase {
@@ -16,7 +16,10 @@ class MockDatabase {
         name,
         avatar: `https://ui-avatars.com/api/?name=${name}&background=random`,
         joinDate: new Date().toISOString().split('T')[0],
+        gender: 'male',
+        heightCm: 170,
         workouts: [],
+        assessments: [],
       };
       this.members.push(newMember);
       resolve(newMember);
@@ -34,6 +37,14 @@ class MockDatabase {
     return new Promise((resolve) => {
       const member = this.members.find(m => m.id === memberId);
       if (member) member.photoUrl = photoUrl;
+      resolve();
+    });
+  }
+
+  async updateMember(memberId: string, updates: Partial<Pick<Member, 'gender' | 'heightCm' | 'name' | 'avatar'>>): Promise<void> {
+    return new Promise((resolve) => {
+      const member = this.members.find(m => m.id === memberId);
+      if (member) Object.assign(member, updates);
       resolve();
     });
   }
@@ -79,6 +90,41 @@ class MockDatabase {
       const member = this.members.find(m => m.id === memberId);
       if (member) {
         member.workouts = member.workouts.filter(w => w.id !== workoutId);
+      }
+      resolve();
+    });
+  }
+
+  // --- Posture Assessments ---
+  async saveAssessment(memberId: string, assessment: PostureAssessment): Promise<void> {
+    return new Promise((resolve) => {
+      const member = this.members.find(m => m.id === memberId);
+      if (member) {
+        const existingIdx = member.assessments.findIndex(a => a.date === assessment.date);
+        if (existingIdx >= 0) {
+          member.assessments[existingIdx] = assessment;
+        } else {
+          member.assessments.push(assessment);
+        }
+      }
+      resolve();
+    });
+  }
+
+  async getAssessments(memberId: string): Promise<PostureAssessment[]> {
+    return new Promise((resolve) => {
+      const member = this.members.find(m => m.id === memberId);
+      resolve(
+        (member?.assessments || []).sort((a, b) => b.date.localeCompare(a.date))
+      );
+    });
+  }
+
+  async deleteAssessment(memberId: string, assessmentId: string): Promise<void> {
+    return new Promise((resolve) => {
+      const member = this.members.find(m => m.id === memberId);
+      if (member) {
+        member.assessments = member.assessments.filter(a => a.id !== assessmentId);
       }
       resolve();
     });
