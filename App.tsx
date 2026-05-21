@@ -4,7 +4,7 @@
  */
 
 import React, { useState, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import PostureAssess from './components/PostureAssess';
@@ -113,86 +113,67 @@ const AppContent: React.FC<AppContentProps> = ({
         </header>
 
         <main className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
-          <div className="animate-in">
-            <Routes>
-            <Route path="/" element={
-              selectedMember ? (
-                <Dashboard
-                  lang={lang}
-                  member={selectedMember}
-                  filterMonth={filterMonth}
-                  onFilterMonthChange={setFilterMonth}
-                  onSaveSession={handleSaveSession}
-                  onUpdateWorkout={isAdmin ? handleUpdateWorkout : async () => {}}
-                  onDeleteWorkout={isAdmin ? handleDeleteWorkout : async () => {}}
-                  onUploadPhoto={isAdmin ? handleUploadPhoto : async () => {}}
-                  editingSession={editingSession}
-                  onEditSession={isAdmin ? (date, workouts) => setEditingSession({ date, workouts }) : () => {}}
-                  onCancelEdit={() => setEditingSession(null)}
-                />
+          {/* 全部页面保持挂载，避免切换时丢失状态 */}
+          <div style={{ display: location.pathname === '/' ? 'block' : 'none' }} className="animate-in">
+            {selectedMember ? (
+              <Dashboard
+                lang={lang} member={selectedMember} filterMonth={filterMonth}
+                onFilterMonthChange={setFilterMonth} onSaveSession={handleSaveSession}
+                onUpdateWorkout={isAdmin ? handleUpdateWorkout : async () => {}}
+                onDeleteWorkout={isAdmin ? handleDeleteWorkout : async () => {}}
+                onUploadPhoto={isAdmin ? handleUploadPhoto : async () => {}}
+                editingSession={editingSession}
+                onEditSession={isAdmin ? (date, workouts) => setEditingSession({ date, workouts }) : () => {}}
+                onCancelEdit={() => setEditingSession(null)}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-base font-semibold text-gray-400">{TRANSLATIONS.selectMember[lang]}</div>
+              </div>
+            )}
+          </div>
+          <div style={{ display: location.pathname === '/posture' ? 'block' : 'none' }} className="animate-in">
+            {selectedMember ? (
+              <PostureAssess
+                lang={lang} memberId={selectedMember.id} memberName={selectedMember.name}
+                heightCm={selectedMember.heightCm} gender={selectedMember.gender}
+                onSaveAssessment={handleSaveAssessment}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-base font-semibold text-gray-400">{TRANSLATIONS.selectMember[lang]}</div>
+              </div>
+            )}
+          </div>
+          <div style={{ display: location.pathname === '/report' ? 'block' : 'none' }} className="animate-in">
+            <Suspense fallback={
+              <div className="flex h-full items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-[#007AFF]" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  <span className="text-sm text-gray-400">{lang === 'zh' ? '加载中...' : 'Loading...'}</span>
+                </div>
+              </div>
+            }>
+              {selectedMember ? (
+                <MemberReport lang={lang} member={selectedMember} studioName={studioName} />
               ) : (
                 <div className="flex h-full items-center justify-center">
-                  <div className="text-center space-y-3">
-                    <div className="text-base font-semibold text-gray-400">
-                      {TRANSLATIONS.selectMember[lang]}
-                    </div>
-                  </div>
+                  <div className="text-base font-semibold text-gray-400">{TRANSLATIONS.selectMember[lang]}</div>
                 </div>
-              )
-            } />
-            <Route path="/posture" element={
-              selectedMember ? (
-                <PostureAssess
-                  lang={lang}
-                  memberId={selectedMember.id}
-                  memberName={selectedMember.name}
-                  heightCm={selectedMember.heightCm}
-                  gender={selectedMember.gender}
-                  onSaveAssessment={handleSaveAssessment}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-zinc-500">
-                  <div className="text-xl font-bold text-zinc-400">{TRANSLATIONS.selectMember[lang]}</div>
+              )}
+            </Suspense>
+          </div>
+          <div style={{ display: location.pathname === '/settings' ? 'block' : 'none' }} className="animate-in">
+            <Suspense fallback={
+              <div className="flex h-full items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-[#007AFF]" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  <span className="text-sm text-gray-400">{lang === 'zh' ? '加载中...' : 'Loading...'}</span>
                 </div>
-              )
-            } />
-            <Route path="/report" element={
-              <Suspense fallback={
-                <div className="flex h-full items-center justify-center">
-                  <div className="flex items-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-[#007AFF]" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <span className="text-sm text-gray-400">{lang === 'zh' ? '加载报告中...' : 'Loading report...'}</span>
-                  </div>
-                </div>
-              }>
-                {selectedMember ? (
-                  <MemberReport lang={lang} member={selectedMember} studioName={studioName} />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-base font-semibold text-gray-400">{TRANSLATIONS.selectMember[lang]}</div>
-                  </div>
-                )}
-              </Suspense>
-            } />
-            <Route path="/settings" element={
-              <Suspense fallback={
-                <div className="flex h-full items-center justify-center">
-                  <div className="flex items-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-[#007AFF]" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <span className="text-sm text-gray-400">{lang === 'zh' ? '加载中...' : 'Loading...'}</span>
-                  </div>
-                </div>
-              }>
-                <Settings lang={lang} />
-              </Suspense>
-            } />
-          </Routes>
+              </div>
+            }>
+              <Settings lang={lang} />
+            </Suspense>
           </div>
         </main>
       </div>
