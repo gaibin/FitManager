@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NeonFit — Neon Dark</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #050508; margin: 0; }
+    .font-display { font-family: 'Space Grotesk', sans-serif; }
+    .neon-glow { box-shadow: 0 0 30px rgba(168, 230, 53, 0.08), 0 0 60px rgba(168, 230, 53, 0.03); }
+    .neon-border { border: 1px solid rgba(168, 230, 53, 0.12); }
+    .neon-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 24px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .neon-card:hover { border-color: rgba(168, 230, 53, 0.15); box-shadow: 0 0 40px rgba(168, 230, 53, 0.04); }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4" style="background: radial-gradient(ellipse at 50% 0%, rgba(168,230,53,0.03) 0%, transparent 60%), #050508;">
+
+  <div class="w-full max-w-[1440px] h-[900px] rounded-[32px] overflow-hidden flex border" style="border-color: rgba(255,255,255,0.04); background: #08080d;">
+
+    <!-- Sidebar — Dark Side -->
+    <aside class="w-72 shrink-0 flex flex-col border-r" style="background: #0a0a10; border-color: rgba(255,255,255,0.04);">
+      <!-- Brand -->
+      <div class="px-8 pt-8 pb-6 border-b" style="border-color: rgba(255,255,255,0.04);">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center rotate-45" style="background: linear-gradient(135deg, #a3e635, #65a30d);">
+            <span class="text-black font-black text-lg -rotate-45 font-display">N</span>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-tight text-white font-display">NEONFIT</h1>
+            <p class="text-[10px] uppercase tracking-[0.2em] mt-0.5" style="color: rgba(168,230,53,0.6);">Studio Manager</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="px-5 py-6 space-y-1.5 flex-1">
+        <div class="flex items-center gap-3 px-4 py-3 rounded-2xl neon-glow neon-border cursor-pointer" style="background: rgba(168,230,53,0.05);">
+          <div class="w-1.5 h-1.5 rounded-full" style="background: #a3e635; box-shadow: 0 0 8px #a3e635;"></div>
+          <span class="text-sm font-semibold text-white">Dashboard</span>
+        </div>
+        <div class="flex items-center gap-3 px-4 py-3 rounded-2xl text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.02] font-medium text-sm transition-all cursor-pointer">
+          <svg class="w-5 h-5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+          Posture Assessment
+        </div>
+        <div class="flex items-center gap-3 px-4 py-3 rounded-2xl text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.02] font-medium text-sm transition-all cursor-pointer">
+          <svg class="w-5 h-5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16c0 1.1.9 2 2 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+          Report Export
+        </div>
+        <div class="flex items-center gap-3 px-4 py-3 rounded-2xl text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.02] font-medium text-sm transition-all cursor-pointer">
+          <svg class="w-5 h-5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </div>
+
+        <!-- Members -->
+        <div class="pt-6 pb-1">
+          <span class="px-4 text-[10px] font-bold uppercase tracking-[0.2em] opacity-20">Members</span>
+        </div>
+        <div class="relative flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer" style="background: rgba(168,230,53,0.04); border: 1px solid rgba(168,230,53,0.08);">
+          <div class="w-9 h-9 rounded-xl overflow-hidden"><img src="https://ui-avatars.com/api/?name=Alice&background=a3e635&color=000" class="w-full h-full object-cover" /></div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-white truncate">Alice Chen</p>
+            <p class="text-[10px] opacity-40">168cm · Female</p>
+          </div>
+          <div class="px-2 py-0.5 rounded-full text-[9px] font-bold" style="background: #a3e635; color: #000;">ON</div>
+        </div>
+        <div class="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.02] text-sm font-medium transition-all cursor-pointer">
+          <div class="w-9 h-9 rounded-xl overflow-hidden"><img src="https://ui-avatars.com/api/?name=Bob&background=3b82f6&color=fff" class="w-full h-full object-cover" /></div>
+          <span class="truncate">Bob Smith</span>
+        </div>
+        <div class="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.02] text-sm font-medium transition-all cursor-pointer">
+          <div class="w-9 h-9 rounded-xl overflow-hidden"><img src="https://ui-avatars.com/api/?name=Cathy&background=f43f5e&color=fff" class="w-full h-full object-cover" /></div>
+          <span class="truncate">Cathy Wu</span>
+        </div>
+      </nav>
+
+      <!-- User -->
+      <div class="p-5 border-t" style="border-color: rgba(255,255,255,0.04);">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold" style="background: rgba(255,255,255,0.06); color: rgba(168,230,53,0.8);">C</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-white">Coach Li</p>
+            <p class="text-[10px] opacity-30">Admin</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Header -->
+      <header class="px-8 py-5 border-b flex items-center justify-between shrink-0" style="border-color: rgba(255,255,255,0.04);">
+        <div>
+          <p class="text-[10px] uppercase tracking-[0.2em] opacity-30 mb-1">Selected Member</p>
+          <h2 class="text-lg font-bold text-white font-display">Alice Chen</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex rounded-full overflow-hidden border text-[10px] font-bold" style="border-color: rgba(255,255,255,0.06);">
+            <span class="px-3.5 py-2 cursor-pointer" style="background: rgba(168,230,53,0.1); color: #a3e635;">EN</span>
+            <span class="px-3.5 py-2 cursor-pointer opacity-30">中文</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto p-8 space-y-5">
+
+        <!-- Stat Cards Row -->
+        <div class="grid grid-cols-3 gap-4">
+          <div class="neon-card p-6 relative overflow-hidden group">
+            <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" style="background: #a3e635;"></div>
+            <p class="text-[10px] uppercase tracking-[0.2em] font-bold relative z-10" style="color: rgba(168,230,53,0.4);">Sessions</p>
+            <div class="flex items-end gap-2 mt-2 relative z-10">
+              <span class="text-4xl font-black text-white font-display">12</span>
+              <span class="text-sm font-bold mb-1" style="color: #a3e635;">+3</span>
+            </div>
+            <p class="text-[10px] opacity-20 mt-1 relative z-10">vs last month</p>
+          </div>
+          <div class="neon-card p-6 relative overflow-hidden group">
+            <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" style="background: #3b82f6;"></div>
+            <p class="text-[10px] uppercase tracking-[0.2em] font-bold relative z-10" style="color: rgba(59,130,246,0.4);">Max Weight</p>
+            <div class="flex items-end gap-2 mt-2 relative z-10">
+              <span class="text-4xl font-black text-white font-display">85</span>
+              <span class="text-lg opacity-30 mb-1">kg</span>
+            </div>
+            <p class="text-[10px] opacity-20 mt-1 relative z-10">Personal Record</p>
+          </div>
+          <div class="neon-card p-6 relative overflow-hidden group">
+            <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" style="background: #f43f5e;"></div>
+            <p class="text-[10px] uppercase tracking-[0.2em] font-bold relative z-10" style="color: rgba(244,63,94,0.4);">Volume</p>
+            <div class="flex items-end gap-2 mt-2 relative z-10">
+              <span class="text-4xl font-black text-white font-display">42.5</span>
+              <span class="text-lg opacity-30 mb-1">k</span>
+            </div>
+            <p class="text-[10px] opacity-20 mt-1 relative z-10">kg this month</p>
+          </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-3 gap-4">
+          <div class="col-span-2 space-y-4">
+            <!-- Chart -->
+            <div class="neon-card p-6">
+              <div class="flex items-center justify-between mb-6">
+                <p class="text-sm font-bold text-white font-display">Training Volume Trend</p>
+                <div class="flex rounded-full overflow-hidden border text-[10px] font-bold" style="border-color: rgba(255,255,255,0.06);">
+                  <span class="px-3 py-1.5" style="background: rgba(168,230,53,0.1); color: #a3e635;">6M</span>
+                  <span class="px-3 py-1.5 opacity-20">1Y</span>
+                </div>
+              </div>
+              <div class="h-[200px] flex items-end gap-3">
+                <div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full rounded-t-lg" style="height:45px; background: linear-gradient(0deg, rgba(168,230,53,0.08), rgba(168,230,53,0.15));"></div><span class="text-[9px] opacity-20">Jan</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full rounded-t-lg" style="height:72px; background: linear-gradient(0deg, rgba(168,230,53,0.12), rgba(168,230,53,0.22));"></div><span class="text-[9px] opacity-20">Feb</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full rounded-t-lg" style="height:98px; background: linear-gradient(0deg, rgba(168,230,53,0.16), rgba(168,230,53,0.30));"></div><span class="text-[9px] opacity-20">Mar</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full rounded-t-lg" style="height:130px; background: linear-gradient(0deg, rgba(168,230,53,0.22), rgba(168,230,53,0.40));"></div><span class="text-[9px] opacity-20">Apr</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full rounded-t-lg relative" style="height:164px; background: linear-gradient(0deg, rgba(168,230,53,0.35), rgba(168,230,53,0.60))">
+                  <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full" style="background: #a3e635; box-shadow: 0 0 10px #a3e635;"></div>
+                </div><span class="text-[9px] font-bold" style="color: rgba(168,230,53,0.6);">May</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1.5"><div class="w-full rounded-t-lg" style="height:178px; background: linear-gradient(0deg, rgba(168,230,53,0.50), rgba(168,230,53,0.85));">
+                  <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full" style="background: #a3e635; box-shadow: 0 0 10px #a3e635;"></div>
+                </div><span class="text-[9px] opacity-20">Jun</span></div>
+              </div>
+            </div>
+
+            <!-- Workout Form -->
+            <div class="neon-card p-6">
+              <p class="text-sm font-bold text-white font-display mb-4">Log Session</p>
+              <div class="grid grid-cols-7 gap-2">
+                <input placeholder="Exercise" class="col-span-2 bg-white/[0.02] border rounded-2xl px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none focus:border-green-500/30 transition-all" style="border-color: rgba(255,255,255,0.04);" />
+                <input placeholder="Weight" type="number" class="bg-white/[0.02] border rounded-2xl px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none focus:border-green-500/30 transition-all" style="border-color: rgba(255,255,255,0.04);" />
+                <input placeholder="Sets" type="number" class="bg-white/[0.02] border rounded-2xl px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none focus:border-green-500/30 transition-all" style="border-color: rgba(255,255,255,0.04);" />
+                <input placeholder="Reps" type="number" class="bg-white/[0.02] border rounded-2xl px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none focus:border-green-500/30 transition-all" style="border-color: rgba(255,255,255,0.04);" />
+                <input type="date" class="bg-white/[0.02] border rounded-2xl px-4 py-3 text-sm text-white outline-none focus:border-green-500/30 transition-all" style="border-color: rgba(255,255,255,0.04);" />
+                <button class="rounded-2xl text-sm font-bold text-black transition-all hover:brightness-110 active:scale-95" style="background: linear-gradient(135deg, #a3e635, #65a30d);">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side panel -->
+          <div class="space-y-4">
+            <!-- History -->
+            <div class="neon-card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <p class="text-sm font-bold text-white font-display">Recent</p>
+                <span class="text-[9px] font-bold px-2 py-1 rounded-full" style="background: rgba(168,230,53,0.08); color: rgba(168,230,53,0.6);">May</span>
+              </div>
+              <div class="space-y-0.5">
+                <div class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/[0.02] transition-colors cursor-pointer">
+                  <div><span class="text-sm font-semibold text-white">Squat</span><span class="text-[10px] opacity-20 ml-2">05-15</span></div>
+                  <span class="text-xs font-mono opacity-40">80kg 4×8</span>
+                </div>
+                <div class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/[0.02] transition-colors cursor-pointer">
+                  <div><span class="text-sm font-semibold text-white">Bench</span><span class="text-[10px] opacity-20 ml-2">05-15</span></div>
+                  <span class="text-xs font-mono opacity-40">60kg 3×10</span>
+                </div>
+                <div class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/[0.02] transition-colors cursor-pointer">
+                  <div><span class="text-sm font-semibold text-white">Deadlift</span><span class="text-[10px] opacity-20 ml-2">05-13</span></div>
+                  <span class="text-xs font-mono opacity-40">100kg 5×5</span>
+                </div>
+                <div class="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/[0.02] transition-colors cursor-pointer">
+                  <div><span class="text-sm font-semibold text-white">Pull Up</span><span class="text-[10px] opacity-20 ml-2">05-13</span></div>
+                  <span class="text-xs font-mono opacity-40">BW 4×8</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Posture card -->
+            <div class="neon-card p-5 relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-32 h-32 rounded-full opacity-[0.03]" style="background: radial-gradient(circle, #a3e635, transparent 70%);"></div>
+              <div class="flex items-center justify-between mb-3 relative z-10">
+                <p class="text-xs font-bold text-white font-display">Posture Score</p>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold" style="background: rgba(168,230,53,0.08); color: #a3e635;">NEW</div>
+              </div>
+              <div class="flex items-end gap-3 relative z-10">
+                <span class="text-5xl font-black text-white font-display">72</span>
+                <span class="text-lg opacity-20 pb-1">/ 100</span>
+              </div>
+              <div class="mt-3 flex gap-1 relative z-10">
+                <div class="h-1 flex-1 rounded-full" style="background: #a3e635;"></div>
+                <div class="h-1 flex-1 rounded-full" style="background: #a3e635;"></div>
+                <div class="h-1 flex-1 rounded-full" style="background: #a3e635;"></div>
+                <div class="h-1 flex-1 rounded-full" style="background: #f59e0b;"></div>
+                <div class="h-1 flex-1 rounded-full opacity-10 bg-white"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+  </div>
+
+</body>
+</html>

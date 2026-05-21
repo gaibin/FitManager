@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NeonFit — Material 3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
+    * { font-family: 'Roboto', sans-serif; }
+    body { background: #e8def8; margin: 0; }
+    .m3-card {
+      background: #fffbfe; border-radius: 28px;
+      transition: box-shadow 0.2s;
+    }
+    .m3-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04); }
+    .m3-elevation-1 { box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 1px 3px 1px rgba(0,0,0,0.04); }
+    .m3-elevation-2 { box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 2px 6px 2px rgba(0,0,0,0.04); }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-[1440px] h-[900px] rounded-[40px] overflow-hidden flex m3-elevation-2" style="background: #fffbfe;">
+
+    <!-- Navigation Rail — Material 3 -->
+    <nav class="w-20 shrink-0 flex flex-col items-center py-6 gap-1" style="background: #f7f2fa;">
+      <!-- FAB-like logo -->
+      <div class="w-12 h-12 rounded-2xl mb-6 flex items-center justify-center" style="background: #6750a4;">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+
+      <div class="w-14 h-8 rounded-full flex items-center justify-center mb-1" style="background: #e8def8;">
+        <svg class="w-5 h-5" fill="#6750a4" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      </div>
+      <span class="text-[10px] font-medium" style="color: #6750a4;">Home</span>
+
+      <div class="w-14 h-8 rounded-full flex items-center justify-center mb-1 mt-2 hover:bg-black/5 cursor-pointer transition-colors">
+        <svg class="w-5 h-5" fill="#49454f" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <span class="text-[10px] font-medium text-neutral-500">Posture</span>
+
+      <div class="w-14 h-8 rounded-full flex items-center justify-center mb-1 mt-2 hover:bg-black/5 cursor-pointer transition-colors">
+        <svg class="w-5 h-5" fill="#49454f" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
+      </div>
+      <span class="text-[10px] font-medium text-neutral-500">Report</span>
+
+      <!-- Members -->
+      <div class="mt-auto flex flex-col items-center gap-2 mb-4">
+        <div class="w-10 h-10 rounded-full border-2 border-purple-200 overflow-hidden"><img src="https://ui-avatars.com/api/?name=Alice&background=6750a4&color=fff" class="w-full h-full object-cover" /></div>
+        <div class="w-10 h-10 rounded-full overflow-hidden opacity-60"><img src="https://ui-avatars.com/api/?name=Bob&background=625b71&color=fff" class="w-full h-full object-cover" /></div>
+        <div class="w-10 h-10 rounded-full overflow-hidden opacity-60"><img src="https://ui-avatars.com/api/?name=Cathy&background=b3261e&color=fff" class="w-full h-full object-cover" /></div>
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-purple-400 text-lg cursor-pointer">+</div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Top App Bar — Material 3 -->
+      <header class="px-6 py-4 flex items-center justify-between" style="background: #f7f2fa;">
+        <div>
+          <h1 class="text-xl font-normal tracking-tight" style="color: #1d1b20;">Alice Chen</h1>
+          <p class="text-xs mt-0.5" style="color: #49454f;">Member since Mar 2024 · Female · 168 cm</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex rounded-full overflow-hidden border" style="border-color: #79747e33;">
+            <span class="px-4 py-1.5 text-xs font-medium cursor-pointer" style="background: #6750a4; color: #fff;">EN</span>
+            <span class="px-4 py-1.5 text-xs font-medium cursor-pointer" style="color: #49454f;">中文</span>
+          </div>
+          <div class="w-9 h-9 rounded-full" style="background: #e8def8;"></div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto p-6 space-y-4" style="background: #fffbfe;">
+
+        <!-- Metric Cards — Material 3 -->
+        <div class="grid grid-cols-3 gap-4">
+          <div class="m3-card m3-elevation-1 p-5 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-20 h-20 rounded-bl-[40px]" style="background: #e8def8;"></div>
+            <p class="text-xs font-medium uppercase tracking-wider relative z-10" style="color: #49454f;">Sessions</p>
+            <p class="text-4xl font-normal mt-1 relative z-10" style="color: #1d1b20;">12</p>
+            <div class="flex items-center gap-1 mt-1 relative z-10">
+              <span class="text-xs font-medium" style="color: #6750a4;">↑ 18%</span>
+              <span class="text-[10px]" style="color: #79747e;">vs last month</span>
+            </div>
+          </div>
+          <div class="m3-card m3-elevation-1 p-5 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-20 h-20 rounded-bl-[40px]" style="background: #ffd8e4;"></div>
+            <p class="text-xs font-medium uppercase tracking-wider relative z-10" style="color: #49454f;">Max Weight</p>
+            <p class="text-4xl font-normal mt-1 relative z-10" style="color: #1d1b20;">85 <span class="text-lg" style="color: #79747e;">kg</span></p>
+            <span class="text-xs font-medium relative z-10" style="color: #ba1a1a;">PR</span>
+          </div>
+          <div class="m3-card m3-elevation-1 p-5 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-20 h-20 rounded-bl-[40px]" style="background: #d0e4ff;"></div>
+            <p class="text-xs font-medium uppercase tracking-wider relative z-10" style="color: #49454f;">Total Volume</p>
+            <p class="text-4xl font-normal mt-1 relative z-10" style="color: #1d1b20;">42.5<span class="text-lg" style="color: #79747e;">k</span></p>
+            <span class="text-xs font-medium relative z-10" style="color: #79747e;">kg this month</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div class="col-span-2 space-y-4">
+            <!-- Chart Card -->
+            <div class="m3-card m3-elevation-1 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <p class="text-base font-medium" style="color: #1d1b20;">Training Volume</p>
+                <div class="flex rounded-full overflow-hidden border" style="border-color: #79747e22;">
+                  <span class="text-[10px] font-medium px-3 py-1" style="background: #6750a4; color: #fff;">6M</span>
+                  <span class="text-[10px] font-medium px-3 py-1" style="color: #49454f;">1Y</span>
+                  <span class="text-[10px] font-medium px-3 py-1" style="color: #49454f;">All</span>
+                </div>
+              </div>
+              <div class="h-[180px] flex items-end gap-4 px-2">
+                <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t-full" style="background: #6750a4; height:50px; opacity:0.3;"></div><span class="text-[10px]" style="color: #79747e;">J</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t-full" style="background: #6750a4; height:70px; opacity:0.4;"></div><span class="text-[10px]" style="color: #79747e;">F</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t-full" style="background: #6750a4; height:95px; opacity:0.5;"></div><span class="text-[10px]" style="color: #79747e;">M</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t-full" style="background: #6750a4; height:120px; opacity:0.6;"></div><span class="text-[10px]" style="color: #79747e;">A</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t-full" style="background: #6750a4; height:155px; opacity:0.8;"></div><span class="text-[10px] font-medium" style="color: #1d1b20;">M</span></div>
+                <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t-full" style="background: #6750a4; height:172px;"></div><span class="text-[10px]" style="color: #79747e;">J</span></div>
+              </div>
+            </div>
+
+            <!-- Workout Form -->
+            <div class="m3-card m3-elevation-1 p-6">
+              <p class="text-base font-medium mb-4" style="color: #1d1b20;">Log Workout</p>
+              <div class="flex gap-2">
+                <input placeholder="Exercise" class="flex-1 rounded-full px-5 py-3 text-sm outline-none border" style="background: #f7f2fa; border-color: #79747e22; color: #1d1b20;" />
+                <input placeholder="Weight" class="w-24 rounded-full px-5 py-3 text-sm outline-none border" style="background: #f7f2fa; border-color: #79747e22; color: #1d1b20;" />
+                <input placeholder="Sets" class="w-20 rounded-full px-5 py-3 text-sm outline-none border" style="background: #f7f2fa; border-color: #79747e22; color: #1d1b20;" />
+                <input placeholder="Reps" class="w-20 rounded-full px-5 py-3 text-sm outline-none border" style="background: #f7f2fa; border-color: #79747e22; color: #1d1b20;" />
+                <button class="rounded-full px-6 py-3 text-sm font-medium text-white transition-all active:scale-95" style="background: #6750a4;">Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side -->
+          <div class="space-y-4">
+            <!-- History -->
+            <div class="m3-card m3-elevation-1 p-5">
+              <p class="text-sm font-medium mb-3" style="color: #1d1b20;">History</p>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between py-2 border-b" style="border-color: #79747e11;">
+                  <span class="text-sm font-medium" style="color: #1d1b20;">Squat</span>
+                  <div class="text-right"><span class="text-sm font-medium" style="color: #1d1b20;">80kg</span><span class="text-xs ml-2" style="color: #79747e;">4×8</span></div>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b" style="border-color: #79747e11;">
+                  <span class="text-sm font-medium" style="color: #1d1b20;">Bench</span>
+                  <div class="text-right"><span class="text-sm font-medium" style="color: #1d1b20;">60kg</span><span class="text-xs ml-2" style="color: #79747e;">3×10</span></div>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b" style="border-color: #79747e11;">
+                  <span class="text-sm font-medium" style="color: #1d1b20;">Deadlift</span>
+                  <div class="text-right"><span class="text-sm font-medium" style="color: #1d1b20;">100kg</span><span class="text-xs ml-2" style="color: #79747e;">5×5</span></div>
+                </div>
+                <div class="flex items-center justify-between py-2">
+                  <span class="text-sm font-medium" style="color: #1d1b20;">Pull Up</span>
+                  <div class="text-right"><span class="text-sm font-medium" style="color: #1d1b20;">BW</span><span class="text-xs ml-2" style="color: #79747e;">4×8</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FAB action -->
+            <div class="m3-card m3-elevation-1 p-5 flex items-center justify-between" style="background: #f7f2fa;">
+              <div>
+                <p class="text-sm font-medium" style="color: #1d1b20;">Posture Score</p>
+                <p class="text-2xl font-normal" style="color: #6750a4;">72<span class="text-sm" style="color: #79747e;">/100</span></p>
+              </div>
+              <div class="w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity" style="background: #6750a4;">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+  </div>
+
+</body>
+</html>
