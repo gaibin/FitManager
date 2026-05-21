@@ -113,7 +113,7 @@ const AppContent: React.FC<AppContentProps> = ({
         </header>
 
         <main className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
-          <div className="animate-in" key={location.pathname}>
+          <div className="animate-in">
             <Routes>
             <Route path="/" element={
               selectedMember ? (
