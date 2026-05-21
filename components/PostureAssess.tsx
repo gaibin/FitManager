@@ -2,7 +2,7 @@
  * 体态评估页面 — Apple HIG 风格 + 图片下载 + 固定比例导出
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Language, PostureAssessment, PostureReport, PostureIssue, CorrectionPlan } from '../types';
 import { analyzePosture } from '../services/postureService';
 import { compressImage, validateImage } from '../services/imageUtils';
@@ -53,7 +53,17 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
   const [correctionPlan, setCorrectionPlan] = useState<CorrectionPlan | null>(null);
   const [error, setError] = useState('');
   const [activeWeek, setActiveWeek] = useState<'week1_2' | 'week3_4'>('week1_2');
+  const [animatedScore, setAnimatedScore] = useState(0);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // 评分环入场动画：report 加载后从 0 动画到实际分数
+  useEffect(() => {
+    if (report) {
+      setAnimatedScore(0);
+      const timer = setTimeout(() => setAnimatedScore(report.score), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [report]);
 
   const handleFileChange = useCallback(async (key: string, file: File) => {
     const err = validateImage(file);
@@ -125,6 +135,8 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
   };
 
   const scoreColor = (s: number) => s >= 70 ? '#34C759' : s >= 40 ? '#FF9500' : '#FF3B30';
+  const getSeverityPercent = (s: string) => s === '严重' ? 90 : s === '中度' ? 60 : s === '低置信度' ? 30 : 20;
+  const getSeverityColor = (s: string) => s === '严重' ? '#FF3B30' : s === '中度' ? '#FF9500' : s === '低置信度' ? '#8E8E93' : '#34C759';
 
   return (
     <div className="space-y-5 animate-in">
@@ -205,8 +217,9 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
               <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
                 <circle cx="70" cy="70" r="58" fill="none" stroke="#F2F2F7" strokeWidth="10" />
                 <circle cx="70" cy="70" r="58" fill="none" stroke={scoreColor(report.score)} strokeWidth="10"
-                  strokeDasharray={`${2 * Math.PI * 58}`} strokeDashoffset={`${2 * Math.PI * 58 * (1 - report.score / 100)}`}
-                  strokeLinecap="round" className="transition-all duration-1000" />
+                  strokeDasharray={`${2 * Math.PI * 58}`}
+                  strokeDashoffset={`${2 * Math.PI * 58 * (1 - animatedScore / 100)}`}
+                  strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.25, 0.1, 0.25, 1)' }} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-extrabold text-gray-800">{report.score}</span>
@@ -227,9 +240,16 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
                       <span className="text-sm font-bold text-gray-800">{lang === 'zh' ? issue.name : issue.nameEn}</span>
                       <span className="text-[11px] font-medium opacity-70" style={{ color: sevColor }}>{issue.value.toFixed(1)} {issue.unit}</span>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-2">
                       <span className="text-[11px] text-gray-400">{lang === 'zh' ? issue.description : issue.descriptionEn}</span>
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: sevBg }}>{issue.severity}</span>
+                    </div>
+                    {/* Severity Progress Bar */}
+                    <div className="w-full h-[3px] rounded-full bg-[#F2F2F7] overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700" style={{
+                        width: `${getSeverityPercent(issue.severity)}%`,
+                        backgroundColor: getSeverityColor(issue.severity),
+                      }} />
                     </div>
                   </div>
                 );

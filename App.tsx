@@ -113,7 +113,8 @@ const AppContent: React.FC<AppContentProps> = ({
         </header>
 
         <main className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
-          <Routes>
+          <div className="animate-in" key={location.pathname}>
+            <Routes>
             <Route path="/" element={
               selectedMember ? (
                 <Dashboard
@@ -192,6 +193,7 @@ const AppContent: React.FC<AppContentProps> = ({
               </Suspense>
             } />
           </Routes>
+          </div>
         </main>
       </div>
     </div>
