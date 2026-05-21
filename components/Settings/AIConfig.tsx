@@ -1,194 +1,89 @@
 /**
- * AI 提供商配置组件 — 选择 AI 服务、填写 API Key、测试连接
+ * AI 提供商配置 — Apple HIG 风格
  */
 
 import React, { useState, useEffect } from 'react';
 import { Language, AIProviderConfig } from '../../types';
-import { createAIProvider, testAIProvider, PROVIDER_PRESETS } from '../../services/aiProvider';
+import { testAIProvider, PROVIDER_PRESETS } from '../../services/aiProvider';
 import { db } from '../../services/localDatabase';
 
-interface AIConfigProps {
-  lang: Language;
-}
-
-const PROVIDER_LABELS: Record<string, string> = {
-  gemini: 'Google Gemini',
-  deepseek: 'DeepSeek',
-  kimi: 'Kimi (Moonshot)',
-  'openai-compatible': 'OpenAI / 兼容接口',
-};
+interface AIConfigProps { lang: Language; }
 
 const AIConfig: React.FC<AIConfigProps> = ({ lang }) => {
-  const [config, setConfig] = useState<AIProviderConfig>({
-    provider: 'gemini',
-    apiKey: '',
-    baseUrl: '',
-    modelName: '',
-  });
+  const [config, setConfig] = useState<AIProviderConfig>({ provider: 'gemini', apiKey: '', baseUrl: '', modelName: '' });
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [saved, setSaved] = useState(false);
 
-  // 加载已保存配置
-  useEffect(() => {
-    (async () => {
-      const saved = await db.getAIConfig();
-      if (saved) {
-        setConfig({
-          provider: saved.provider,
-          apiKey: saved.apiKey,
-          baseUrl: saved.baseUrl,
-          modelName: saved.modelName,
-        });
-      }
-    })();
-  }, []);
+  useEffect(() => { (async () => { const s = await db.getAIConfig(); if (s) setConfig(s); })(); }, []);
 
-  const handleProviderChange = (provider: AIProviderConfig['provider']) => {
-    const preset = PROVIDER_PRESETS[provider];
-    setConfig(prev => ({
-      ...prev,
-      provider,
-      baseUrl: preset.baseUrl,
-      modelName: preset.defaultModel,
-    }));
-    setTestResult(null);
+  const handleProviderChange = (p: AIProviderConfig['provider']) => {
+    const preset = PROVIDER_PRESETS[p];
+    setConfig(prev => ({ ...prev, provider: p, baseUrl: preset.baseUrl, modelName: preset.defaultModel }));
+    setResult(null);
   };
 
   const handleTest = async () => {
-    if (!config.apiKey) {
-      setTestResult({ success: false, message: lang === 'zh' ? '请先填写 API Key' : 'Please enter API Key first' });
-      return;
-    }
-    setTesting(true);
-    setTestResult(null);
-    try {
-      const result = await testAIProvider(config);
-      setTestResult(result);
-    } catch (err: any) {
-      setTestResult({ success: false, message: err.message });
-    } finally {
-      setTesting(false);
-    }
+    if (!config.apiKey) { setResult({ success: false, message: lang === 'zh' ? '请先填写 API Key' : 'Enter API Key' }); return; }
+    setTesting(true); setResult(null);
+    try { const r = await testAIProvider(config); setResult(r); } catch (e: any) { setResult({ success: false, message: e.message }); }
+    finally { setTesting(false); }
   };
 
-  const handleSave = async () => {
-    await db.saveAIConfig(config);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+  const handleSave = async () => { await db.saveAIConfig(config); setSaved(true); setTimeout(() => setSaved(false), 2000); };
 
-  const showBaseUrl = config.provider !== 'gemini';
+  const providers: { key: AIProviderConfig['provider']; label: string }[] = [
+    { key: 'gemini', label: 'Google Gemini' }, { key: 'deepseek', label: 'DeepSeek' },
+    { key: 'kimi', label: 'Kimi' }, { key: 'openai-compatible', label: 'OpenAI Compatible' },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h3 className="text-sm font-bold text-zinc-100 mb-2">
-          {lang === 'zh' ? 'AI 提供商' : 'AI Provider'}
-        </h3>
-        <p className="text-xs text-zinc-500 mb-3">
-          {lang === 'zh'
-            ? '选择用于生成训练建议的 AI 服务。不配置时系统仍可正常使用。'
-            : 'Select the AI service for generating training recommendations. The system works without AI configuration.'}
-        </p>
+        <h3 className="text-sm font-bold text-gray-800 mb-2">{lang === 'zh' ? 'AI 提供商' : 'AI Provider'}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {(Object.keys(PROVIDER_LABELS) as AIProviderConfig['provider'][]).map((key) => (
-            <button
-              key={key}
-              onClick={() => handleProviderChange(key)}
-              className={`py-2 px-3 rounded-lg text-xs font-medium transition-all border ${
-                config.provider === key
-                  ? 'bg-lime-500/10 border-lime-500/50 text-lime-400'
-                  : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600'
-              }`}
-            >
-              {PROVIDER_LABELS[key]}
-            </button>
+          {providers.map(({ key, label }) => (
+            <button key={key} onClick={() => handleProviderChange(key)}
+              className={`py-2.5 px-3 rounded-xl text-[11px] font-semibold transition-all border ${
+                config.provider === key ? 'border-[#007AFF]/30 bg-[#007AFF]/5 text-[#007AFF]' : 'border-gray-100 bg-gray-50 text-gray-500 hover:bg-gray-100'
+              }`}>{label}</button>
           ))}
         </div>
       </div>
-
       <div>
-        <label className="text-xs text-zinc-500 uppercase font-semibold mb-1.5 block">
-          API Key
-        </label>
-        <input
-          type="password"
-          value={config.apiKey}
-          onChange={(e) => setConfig(prev => ({ ...prev, apiKey: e.target.value }))}
-          placeholder={lang === 'zh' ? '输入 API Key...' : 'Enter API Key...'}
-          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 text-white text-sm focus:border-lime-500 outline-none font-mono"
-        />
+        <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em] mb-1.5 block">API Key</label>
+        <input type="password" value={config.apiKey} onChange={e => setConfig(p => ({ ...p, apiKey: e.target.value }))}
+          className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#007AFF]/30 transition-all font-mono" />
       </div>
-
-      {showBaseUrl && (
+      {config.provider !== 'gemini' && (
         <div>
-          <label className="text-xs text-zinc-500 uppercase font-semibold mb-1.5 block">
-            Base URL
-          </label>
-          <input
-            type="text"
-            value={config.baseUrl}
-            onChange={(e) => setConfig(prev => ({ ...prev, baseUrl: e.target.value }))}
-            placeholder="https://api.deepseek.com"
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 text-white text-sm focus:border-lime-500 outline-none font-mono"
-          />
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em] mb-1.5 block">Base URL</label>
+          <input type="text" value={config.baseUrl} onChange={e => setConfig(p => ({ ...p, baseUrl: e.target.value }))}
+            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#007AFF]/30 transition-all font-mono" />
         </div>
       )}
-
       <div>
-        <label className="text-xs text-zinc-500 uppercase font-semibold mb-1.5 block">
-          {lang === 'zh' ? '模型名称' : 'Model Name'}
-        </label>
-        <input
-          type="text"
-          value={config.modelName}
-          onChange={(e) => setConfig(prev => ({ ...prev, modelName: e.target.value }))}
-          placeholder={PROVIDER_PRESETS[config.provider]?.defaultModel || 'gpt-3.5-turbo'}
-          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 text-white text-sm focus:border-lime-500 outline-none font-mono"
-        />
+        <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em] mb-1.5 block">{lang === 'zh' ? '模型名称' : 'Model'}</label>
+        <input type="text" value={config.modelName} onChange={e => setConfig(p => ({ ...p, modelName: e.target.value }))}
+          className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#007AFF]/30 transition-all font-mono" />
       </div>
-
-      {/* 操作按钮 */}
-      <div className="flex space-x-3">
-        <button
-          onClick={handleTest}
-          disabled={testing}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-lg border border-zinc-700 transition-all disabled:opacity-50"
-        >
-          {testing && (
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          )}
-          <span>{lang === 'zh' ? '测试连接' : 'Test Connection'}</span>
+      <div className="flex gap-3">
+        <button onClick={handleTest} disabled={testing}
+          className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-50">
+          {testing && <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
+          {lang === 'zh' ? '测试连接' : 'Test'}
         </button>
-        <button
-          onClick={handleSave}
-          className="px-4 py-2.5 bg-lime-500 hover:bg-lime-400 text-black text-sm font-bold rounded-lg transition-all"
-        >
-          {saved ? (lang === 'zh' ? '已保存' : 'Saved') : TRANSLATION_KEYS.save[lang]}
+        <button onClick={handleSave} className="px-6 py-3 rounded-xl text-sm font-bold text-white scale-press" style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}>
+          {saved ? 'Saved' : (lang === 'zh' ? '保存' : 'Save')}
         </button>
       </div>
-
-      {/* 测试结果 */}
-      {testResult && (
-        <div className={`rounded-lg border p-3 text-sm ${
-          testResult.success
-            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-            : 'bg-red-500/10 border-red-500/20 text-red-400'
-        }`}>
-          {testResult.message}
+      {result && (
+        <div className={`rounded-xl p-4 text-sm font-medium ${result.success ? 'bg-[#34C759]/5 text-[#34C759] border border-[#34C759]/10' : 'bg-[#FF3B30]/5 text-[#FF3B30] border border-[#FF3B30]/10'}`}>
+          {result.message}
         </div>
       )}
     </div>
   );
-};
-
-const TRANSLATION_KEYS = {
-  save: { en: 'Save', zh: '保存' },
-  cancel: { en: 'Cancel', zh: '取消' },
 };
 
 export default AIConfig;

@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
+import { Language } from '../types';
 import { login } from '../services/authService';
-import { TRANSLATIONS } from '../constants';
-import type { Language } from '../types';
 
-interface LoginPageProps {
-  lang: Language;
-  onLoginSuccess: () => void;
-}
+interface LoginPageProps { lang: Language; onLoginSuccess: () => void; }
 
 const LoginPage: React.FC<LoginPageProps> = ({ lang, onLoginSuccess }) => {
   const [username, setUsername] = useState('');
@@ -14,93 +10,41 @@ const LoginPage: React.FC<LoginPageProps> = ({ lang, onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    const { user, error: loginError } = await login(username, password);
-
-    if (loginError || !user) {
-      setError(loginError || '登录失败');
-      setLoading(false);
-      return;
-    }
-
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); setError(''); setLoading(true);
+    const { user, error: err } = await login(username, password);
+    if (user) { onLoginSuccess(); } else { setError(err || 'Login failed'); }
     setLoading(false);
-    onLoginSuccess();
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-zinc-950">
-      <div className="w-full max-w-md p-8 bg-zinc-900 rounded-2xl border border-zinc-800 shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 50%, #f0f0f5 100%)' }}>
+      <div className="w-full max-w-sm mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-lime-400 to-emerald-500 mb-2">
-            NEONFIT STUDIO
-          </h1>
-          <p className="text-zinc-500 text-sm">
-            {lang === 'zh' ? '请登录以访问管理系统' : 'Please login to access the management system'}
-          </p>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg" style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}>
+            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight">NeonFit</h1>
+          <p className="text-sm text-gray-400 mt-1">{lang === 'zh' ? '工作室管理平台' : 'Studio Manager'}</p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleLogin} className="bg-white rounded-2xl p-6 space-y-4" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)' }}>
           <div>
-            <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide">
-              {lang === 'zh' ? '用户名' : 'Username'}
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 text-white focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500 transition-all"
-              placeholder={lang === 'zh' ? '请输入用户名' : 'Enter username'}
-              required
-              autoFocus
-            />
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em] mb-1.5 block">Username</label>
+            <input type="text" value={username} onChange={e => setUsername(e.target.value)} autoFocus
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#007AFF]/30 focus:ring-2 focus:ring-[#007AFF]/10 transition-all" />
           </div>
-
           <div>
-            <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide">
-              {lang === 'zh' ? '密码' : 'Password'}
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 text-white focus:border-lime-500 focus:outline-none focus:ring-1 focus:ring-lime-500 transition-all"
-              placeholder={lang === 'zh' ? '请输入密码' : 'Enter password'}
-              required
-            />
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em] mb-1.5 block">Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#007AFF]/30 focus:ring-2 focus:ring-[#007AFF]/10 transition-all" />
           </div>
-
-          {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-lime-500 hover:bg-lime-400 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg shadow-lime-500/10"
-          >
-            {loading
-              ? lang === 'zh'
-                ? '登录中...'
-                : 'Logging in...'
-              : lang === 'zh'
-              ? '登录'
-              : 'Login'}
+          {error && <div className="bg-[#FF3B30]/5 border border-[#FF3B30]/10 rounded-xl p-3 text-sm text-[#FF3B30] font-medium">{error}</div>}
+          <button type="submit" disabled={loading}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all scale-press disabled:opacity-60"
+            style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}>
+            {loading ? (lang === 'zh' ? '登录中...' : 'Signing in...') : (lang === 'zh' ? '登录' : 'Sign In')}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-xs text-zinc-600">
-          <p>
-            {lang === 'zh'
-              ? '管理员：使用管理员账号登录 | 会员：使用您的姓名登录'
-              : 'Admin: Use admin account | Member: Use your name to login'}
-          </p>
-        </div>
       </div>
     </div>
   );

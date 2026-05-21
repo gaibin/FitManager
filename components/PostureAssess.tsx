@@ -1,5 +1,5 @@
 /**
- * 体态评估页面 — 上传3张照片，调用Flask后端进行AI体态分析，展示评分和矫正方案
+ * 体态评估页面 — Apple HIG 风格 + 图片下载 + 固定比例导出
  */
 
 import React, { useState, useCallback, useRef } from 'react';
@@ -10,31 +10,39 @@ import { matchCorrectionPlan, generateDefaultRecommendation } from '../services/
 import { TRANSLATIONS } from '../constants';
 
 interface PostureAssessProps {
-  lang: Language;
-  memberId: string;
-  memberName: string;
-  heightCm: number;
-  gender: 'male' | 'female';
+  lang: Language; memberId: string; memberName: string;
+  heightCm: number; gender: 'male' | 'female';
   onSaveAssessment: (assessment: PostureAssessment) => Promise<void>;
 }
 
-// 严重度颜色
-const severityColors: Record<string, string> = {
-  '正常': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  '中度': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  '严重': 'text-red-400 bg-red-500/10 border-red-500/20',
-  '低置信度': 'text-zinc-500 bg-zinc-700/30 border-zinc-600/20',
-};
-
 const PHOTO_TYPES = [
-  { key: 'front' as const, labelEn: 'Front Photo', labelZh: '正面照' },
-  { key: 'side' as const, labelEn: 'Side Photo', labelZh: '侧面照' },
-  { key: 'back' as const, labelEn: 'Back Photo (Optional)', labelZh: '背面照（可选）' },
+  { key: 'front' as const, labelEn: 'Front', labelZh: '正面照' },
+  { key: 'side' as const, labelEn: 'Side', labelZh: '侧面照' },
+  { key: 'back' as const, labelEn: 'Back', labelZh: '背面照' },
 ];
 
+// 下载图片 — 保持原始比例，不压缩人物
+function downloadImage(dataUrl: string, fileName: string) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    // 使用原始比例，最大宽度 1920px
+    const maxW = 1920;
+    let w = img.width, h = img.height;
+    if (w > maxW) { h = (h * maxW) / w; w = maxW; }
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0, w, h);
+    const link = document.createElement('a');
+    link.download = fileName;
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+  };
+  img.src = dataUrl;
+}
+
 const PostureAssess: React.FC<PostureAssessProps> = ({
-  lang, memberId, memberName, heightCm, gender,
-  onSaveAssessment,
+  lang, memberId, memberName, heightCm, gender, onSaveAssessment,
 }) => {
   const [images, setImages] = useState<Record<string, string | null>>({ front: null, side: null, back: null });
   const [height, setHeight] = useState(heightCm);
@@ -48,16 +56,14 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleFileChange = useCallback(async (key: string, file: File) => {
-    const validationError = validateImage(file);
-    if (validationError) { setError(validationError); return; }
+    const err = validateImage(file);
+    if (err) { setError(err); return; }
     try {
       const compressed = await compressImage(file);
       setImages(prev => ({ ...prev, [key]: compressed }));
       setError('');
-    } catch {
-      setError('图片处理失败，请重试');
-    }
-  }, []);
+    } catch { setError(lang === 'zh' ? '图片处理失败，请重试' : 'Image processing failed'); }
+  }, [lang]);
 
   const handleDrop = useCallback((e: React.DragEvent, key: string) => {
     e.preventDefault();
@@ -65,239 +71,110 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
     if (file) handleFileChange(key, file);
   }, [handleFileChange]);
 
-  const handleClick = (key: string) => {
-    fileInputRefs.current[key]?.click();
-  };
+  const handleClick = (key: string) => fileInputRefs.current[key]?.click();
 
   const handleAnalyze = async () => {
     if (!images.front || !images.side) {
       setError(lang === 'zh' ? '请至少上传正面照和侧面照' : 'Please upload at least front and side photos');
       return;
     }
-    setAnalyzing(true);
-    setError('');
-    setReport(null);
-    setCorrectionPlan(null);
-
+    setAnalyzing(true); setError(''); setReport(null); setCorrectionPlan(null);
     try {
       setAnalyzeStage(lang === 'zh' ? '正在检测关键点...' : 'Detecting keypoints...');
-      const res = await analyzePosture({
-        front_image: images.front,
-        side_image: images.side,
-        back_image: images.back || undefined,
-        height_cm: height,
-        gender: memberGender,
-      });
-
-      if (!res.success) {
-        console.warn('Backend returned error, falling back:', res.error);
-        throw new Error(res.error || 'backend_error');
-      }
-
+      const res = await analyzePosture({ front_image: images.front, side_image: images.side, back_image: images.back || undefined, height_cm: height, gender: memberGender });
+      if (!res.success) throw new Error(res.error || 'backend_error');
       const data = res.data!;
-      const issues: PostureIssue[] = (data.issues || []).map((issue: any) => ({
-        name: issue.name,
-        nameEn: issue.name_en || issue.name,
-        value: issue.value,
-        unit: issue.unit,
-        severity: issue.severity as PostureIssue['severity'],
-        description: issue.description || '',
-        descriptionEn: issue.description_en || issue.description || '',
-        exercises: issue.exercises || [],
-        confidence: issue.confidence || 1.0,
+      const issues: PostureIssue[] = (data.issues || []).map((i: any) => ({
+        name: i.name, nameEn: i.name_en || i.name, value: i.value, unit: i.unit,
+        severity: i.severity as PostureIssue['severity'], description: i.description || '',
+        descriptionEn: i.description_en || i.description || '', exercises: i.exercises || [], confidence: i.confidence || 1.0,
       }));
-
-      setReport({
-        score: data.score,
-        confidence: data.confidence,
-        issues,
-      });
-
+      setReport({ score: data.score, confidence: data.confidence, issues });
       const plan = data.correction_plan || { week1_2: [], week3_4: [] };
-      setCorrectionPlan({
-        week1_2: (plan.week1_2 || []).map((e: any) => ({
-          name: e.name,
-          description: e.description || '',
-          sets: e.sets || '3x12',
-        })),
-        week3_4: (plan.week3_4 || []).map((e: any) => ({
-          name: e.name,
-          description: e.description || '',
-          sets: e.sets || '3x10',
-        })),
-      });
-
       const finalPlan: CorrectionPlan = {
-        week1_2: (plan.week1_2 || []).map((e: any) => ({
-          name: e.name,
-          description: e.description || '',
-          sets: e.sets || '3x12',
-        })),
-        week3_4: (plan.week3_4 || []).map((e: any) => ({
-          name: e.name,
-          description: e.description || '',
-          sets: e.sets || '3x10',
-        })),
+        week1_2: (plan.week1_2 || []).map((e: any) => ({ name: e.name, description: e.description || '', sets: e.sets || '3x12' })),
+        week3_4: (plan.week3_4 || []).map((e: any) => ({ name: e.name, description: e.description || '', sets: e.sets || '3x10' })),
       };
-
-      // 保存评估结果
-      const assessment: PostureAssessment = {
+      setCorrectionPlan(finalPlan);
+      await onSaveAssessment({
         id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9),
         date: new Date().toISOString().split('T')[0],
-        frontImage: images.front,
-        sideImage: images.side,
-        backImage: images.back || undefined,
-        report: {
-          score: data.score,
-          confidence: data.confidence,
-          issues,
-        },
-        correctionPlan: finalPlan,
-      };
-
-      await onSaveAssessment(assessment);
-
+        frontImage: images.front!, sideImage: images.side!, backImage: images.back || undefined,
+        report: { score: data.score, confidence: data.confidence, issues }, correctionPlan: finalPlan,
+      });
     } catch (err: any) {
-      // 后端不可用，使用规则引擎 fallback
-      console.warn('Flask backend unavailable, using rule-based fallback:', err.message);
-
+      console.warn('Backend unavailable, using fallback:', err.message);
       const demoIssues: PostureIssue[] = [
-        { name: '高低肩', nameEn: 'Shoulder Imbalance', value: 2.3, unit: '°', severity: '中度', description: '左侧肩胛高于右侧', descriptionEn: 'Left shoulder higher than right', exercises: ['单侧哑铃推举', '侧平举'], confidence: 0.75 },
-        { name: '头前引', nameEn: 'Forward Head', value: 42.5, unit: '°', severity: '严重', description: '耳垂前移超过肩峰垂线', descriptionEn: 'Earlobe ahead of acromion', exercises: ['下颌内收', '墙天使'], confidence: 0.82 },
-        { name: '含胸圆肩', nameEn: 'Rounded Shoulders', value: 12.1, unit: '%', severity: '中度', description: '肩峰前移比例偏高', descriptionEn: 'Shoulder protraction ratio elevated', exercises: ['弹力带面拉', '胸椎伸展'], confidence: 0.68 },
-        { name: '骨盆倾斜', nameEn: 'Pelvic Tilt', value: 3.8, unit: '°', severity: '正常', description: '骨盆位置基本对称', descriptionEn: 'Pelvic alignment normal', exercises: [], confidence: 0.71 },
+        { name: '高低肩', nameEn: 'Shoulder Imbalance', value: 2.3, unit: '\u00b0', severity: '中度', description: '左侧肩胛高于右侧', descriptionEn: 'Left shoulder higher', exercises: ['单侧哑铃推举', '侧平举'], confidence: 0.75 },
+        { name: '头前引', nameEn: 'Forward Head', value: 42.5, unit: '\u00b0', severity: '严重', description: '耳垂前移超过肩峰垂线', descriptionEn: 'Earlobe ahead of acromion', exercises: ['下颌内收', '墙天使'], confidence: 0.82 },
+        { name: '含胸圆肩', nameEn: 'Rounded Shoulders', value: 12.1, unit: '%', severity: '中度', description: '肩峰前移比例偏高', descriptionEn: 'Shoulder protraction elevated', exercises: ['弹力带面拉', '胸椎伸展'], confidence: 0.68 },
+        { name: '骨盆倾斜', nameEn: 'Pelvic Tilt', value: 3.8, unit: '\u00b0', severity: '正常', description: '骨盆位置基本对称', descriptionEn: 'Pelvic alignment normal', exercises: [], confidence: 0.71 },
       ];
-
-      const issueNames = demoIssues.map(i => i.name);
-      const fallbackPlan = matchCorrectionPlan(issueNames);
-      const fallbackSuggestion = generateDefaultRecommendation(issueNames, lang);
-
+      const names = demoIssues.map(i => i.name);
+      const fbPlan = matchCorrectionPlan(names);
       setReport({ score: 62, confidence: 0.74, issues: demoIssues });
-      setCorrectionPlan(fallbackPlan);
-
-      const assessment: PostureAssessment = {
+      setCorrectionPlan(fbPlan);
+      await onSaveAssessment({
         id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9),
         date: new Date().toISOString().split('T')[0],
-        frontImage: images.front!,
-        sideImage: images.side!,
-        backImage: images.back || undefined,
-        report: { score: 62, confidence: 0.74, issues: demoIssues },
-        correctionPlan: fallbackPlan,
-        aiRecommendation: fallbackSuggestion,
-      };
-      await onSaveAssessment(assessment);
-    } finally {
-      setAnalyzing(false);
-      setAnalyzeStage('');
-    }
+        frontImage: images.front!, sideImage: images.side!, backImage: images.back || undefined,
+        report: { score: 62, confidence: 0.74, issues: demoIssues }, correctionPlan: fbPlan,
+        aiRecommendation: generateDefaultRecommendation(names, lang),
+      });
+    } finally { setAnalyzing(false); setAnalyzeStage(''); }
   };
 
-  // 环形评分图
-  const renderScoreRing = () => {
-    if (!report) return null;
-    const score = report.score;
-    const color = score >= 70 ? '#a3e635' : score >= 40 ? '#f59e0b' : '#f43f5e';
-    const circumference = 2 * Math.PI * 58;
-    const offset = circumference - (score / 100) * circumference;
-
-    return (
-      <div className="flex flex-col items-center">
-        <div className="relative w-40 h-40">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
-            <circle cx="70" cy="70" r="58" fill="none" stroke="currentColor" strokeWidth="10" className="text-zinc-800" />
-            <circle
-              cx="70" cy="70" r="58" fill="none" stroke={color} strokeWidth="10"
-              strokeDasharray={circumference} strokeDashoffset={offset}
-              strokeLinecap="round" className="transition-all duration-1000 ease-out"
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold text-white">{score}</span>
-            <span className="text-xs text-zinc-500">/ 100</span>
-          </div>
-        </div>
-        <span className="text-xs text-zinc-500 mt-2">
-          {lang === 'zh' ? '置信度' : 'Confidence'}: {(report.confidence * 100).toFixed(0)}%
-        </span>
-      </div>
-    );
-  };
+  const scoreColor = (s: number) => s >= 70 ? '#34C759' : s >= 40 ? '#FF9500' : '#FF3B30';
 
   return (
-    <div className="space-y-6">
-      {/* 照片上传区域 */}
+    <div className="space-y-5 animate-in">
+      {/* Upload Area */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {PHOTO_TYPES.map(({ key, labelEn, labelZh }) => (
-          <div
-            key={key}
-            onDrop={(e) => handleDrop(e, key)}
-            onDragOver={(e) => e.preventDefault()}
+          <div key={key} onDrop={e => handleDrop(e, key)} onDragOver={e => e.preventDefault()}
             onClick={() => handleClick(key)}
-            className={`relative rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer overflow-hidden group min-h-[200px] flex items-center justify-center ${
-              images[key]
-                ? 'border-lime-500/30 bg-zinc-900/50'
-                : 'border-zinc-700 hover:border-zinc-500 bg-zinc-900/30'
-            }`}
-          >
+            className={`relative rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer overflow-hidden min-h-[220px] flex items-center justify-center ${
+              images[key] ? 'border-[#007AFF]/20 bg-gray-50' : 'border-gray-200 hover:border-gray-300 bg-gray-50/50'
+            }`}>
             {images[key] ? (
               <>
-                <img src={images[key]} alt={labelEn} className="w-full h-full object-cover absolute inset-0" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleClick(key); }}
-                    className="px-4 py-2 bg-lime-500 text-black text-xs font-bold rounded-lg"
-                  >
-                    {lang === 'zh' ? '更换照片' : 'Change Photo'}
+                <img src={images[key]!} alt={labelEn} className="w-full h-full object-contain absolute inset-0 p-2" />
+                <div className="absolute top-2 right-2 flex gap-1.5">
+                  <button onClick={e => { e.stopPropagation(); downloadImage(images[key]!, `${memberName}_${key}_${new Date().toISOString().split('T')[0]}.jpg`); }}
+                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold text-white transition-opacity hover:opacity-90 shadow-sm"
+                    style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}>
+                    {lang === 'zh' ? '下载' : 'Download'}
                   </button>
                 </div>
               </>
             ) : (
               <div className="text-center p-4">
-                <svg className="w-10 h-10 mx-auto text-zinc-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="text-sm text-zinc-500">{lang === 'zh' ? labelZh : labelEn}</span>
+                <svg className="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span className="text-sm text-gray-400 font-medium">{lang === 'zh' ? labelZh : labelEn}</span>
               </div>
             )}
-            <input
-              ref={(el) => { fileInputRefs.current[key] = el; }}
-              type="file" accept="image/jpeg,image/png" className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileChange(key, file);
-              }}
-            />
+            <input ref={el => { fileInputRefs.current[key] = el; }} type="file" accept="image/jpeg,image/png" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFileChange(key, f); }} />
           </div>
         ))}
       </div>
 
-      {/* 身高和性别输入 */}
+      {/* Height & Gender */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4">
-          <label className="text-xs text-zinc-500 uppercase font-semibold mb-1.5 block">
-            {lang === 'zh' ? '身高 (cm)' : 'Height (cm)'}
-          </label>
-          <input
-            type="number" value={height} min={100} max={250}
-            onChange={(e) => setHeight(Number(e.target.value))}
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2.5 text-white text-sm focus:border-lime-500 outline-none"
-          />
+        <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em] mb-1.5 block">{lang === 'zh' ? '身高 (cm)' : 'Height (cm)'}</label>
+          <input type="number" value={height} min={100} max={250} onChange={e => setHeight(Number(e.target.value))}
+            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-gray-800 text-sm outline-none focus:border-[#007AFF]/30 transition-all" />
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4">
-          <label className="text-xs text-zinc-500 uppercase font-semibold mb-1.5 block">
-            {lang === 'zh' ? '性别' : 'Gender'}
-          </label>
-          <div className="flex space-x-2">
-            {(['male', 'female'] as const).map((g) => (
-              <button
-                key={g}
-                onClick={() => setMemberGender(g)}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  memberGender === g
-                    ? 'bg-lime-500 text-black'
-                    : 'bg-zinc-800 text-zinc-400 hover:text-white'
+        <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em] mb-1.5 block">{lang === 'zh' ? '性别' : 'Gender'}</label>
+          <div className="flex gap-2">
+            {(['male', 'female'] as const).map(g => (
+              <button key={g} onClick={() => setMemberGender(g)}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all scale-press ${
+                  memberGender === g ? 'text-white shadow-sm' : 'text-gray-500 bg-gray-50 hover:bg-gray-100'
                 }`}
-              >
+                style={memberGender === g ? { background: 'linear-gradient(135deg, #007AFF, #5856D6)' } : {}}>
                 {g === 'male' ? (lang === 'zh' ? '男' : 'Male') : (lang === 'zh' ? '女' : 'Female')}
               </button>
             ))}
@@ -305,134 +182,91 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
         </div>
       </div>
 
-      {/* 开始分析按钮 */}
-      <button
-        onClick={handleAnalyze}
-        disabled={analyzing || !images.front || !images.side}
-        className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-lime-500 hover:bg-lime-400 text-black"
-      >
+      {/* Analyze Button */}
+      <button onClick={handleAnalyze} disabled={analyzing || !images.front || !images.side}
+        className="w-full py-3.5 rounded-2xl text-sm font-bold transition-all scale-press disabled:opacity-30 disabled:pointer-events-none text-white"
+        style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}>
         {analyzing ? (
-          <span className="flex items-center justify-center space-x-2">
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <span>{analyzeStage || (lang === 'zh' ? '分析中...' : 'Analyzing...')}</span>
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            {analyzeStage || (lang === 'zh' ? '分析中...' : 'Analyzing...')}
           </span>
-        ) : (
-          <span>{lang === 'zh' ? '开始分析' : 'Start Analysis'}</span>
-        )}
+        ) : (lang === 'zh' ? '开始分析' : 'Start Analysis')}
       </button>
 
-      {/* 错误提示 */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">
-          {error}
-        </div>
-      )}
+      {error && <div className="bg-[#FF3B30]/5 border border-[#FF3B30]/10 rounded-2xl p-4 text-sm text-[#FF3B30] font-medium">{error}</div>}
 
-      {/* 分析结果 */}
+      {/* Results */}
       {report && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 左侧：评分 */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 flex flex-col items-center justify-center">
-            <h3 className="text-sm font-bold text-zinc-100 mb-4">
-              {lang === 'zh' ? '综合体态评分' : 'Posture Score'}
-            </h3>
-            {renderScoreRing()}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <h3 className="text-xs font-bold text-gray-800 mb-4">{lang === 'zh' ? '综合体态评分' : 'Posture Score'}</h3>
+            <div className="relative w-36 h-36">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
+                <circle cx="70" cy="70" r="58" fill="none" stroke="#F2F2F7" strokeWidth="10" />
+                <circle cx="70" cy="70" r="58" fill="none" stroke={scoreColor(report.score)} strokeWidth="10"
+                  strokeDasharray={`${2 * Math.PI * 58}`} strokeDashoffset={`${2 * Math.PI * 58 * (1 - report.score / 100)}`}
+                  strokeLinecap="round" className="transition-all duration-1000" />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-extrabold text-gray-800">{report.score}</span>
+                <span className="text-[11px] text-gray-400">/ 100</span>
+              </div>
+            </div>
+            <span className="text-[10px] text-gray-400 mt-2">{(report.confidence * 100).toFixed(0)}% confidence</span>
           </div>
-
-          {/* 右侧：问题列表 */}
-          <div className="lg:col-span-2 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-            <h3 className="text-sm font-bold text-zinc-100 mb-4">
-              {lang === 'zh' ? '检测结果' : 'Detection Results'}
-            </h3>
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-              {report.issues.map((issue, idx) => (
-                <div
-                  key={idx}
-                  className={`rounded-xl border p-4 ${severityColors[issue.severity] || severityColors['中度']}`}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-bold text-sm">
-                      {lang === 'zh' ? issue.name : issue.nameEn}
-                    </span>
-                    <span className="text-xs opacity-70">
-                      {issue.value.toFixed(1)} {issue.unit}
-                    </span>
+          <div className="lg:col-span-2 bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <h3 className="text-xs font-bold text-gray-800 mb-4">{lang === 'zh' ? '检测结果' : 'Results'}</h3>
+            <div className="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
+              {report.issues.map((issue, idx) => {
+                const sevColor = issue.severity === '严重' ? '#FF3B30' : issue.severity === '中度' ? '#FF9500' : issue.severity === '低置信度' ? '#8E8E93' : '#34C759';
+                const sevBg = issue.severity === '严重' ? '#FF3B30' : issue.severity === '中度' ? '#FF9500' : issue.severity === '低置信度' ? '#8E8E93' : '#34C759';
+                return (
+                  <div key={idx} className="rounded-xl p-4 border" style={{ backgroundColor: `${sevColor}08`, borderColor: `${sevColor}18` }}>
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-sm font-bold text-gray-800">{lang === 'zh' ? issue.name : issue.nameEn}</span>
+                      <span className="text-[11px] font-medium opacity-70" style={{ color: sevColor }}>{issue.value.toFixed(1)} {issue.unit}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-gray-400">{lang === 'zh' ? issue.description : issue.descriptionEn}</span>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: sevBg }}>{issue.severity}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs opacity-60">
-                      {lang === 'zh' ? issue.description : issue.descriptionEn}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      issue.severity === '严重' ? 'bg-red-500/20 text-red-300' :
-                      issue.severity === '中度' ? 'bg-amber-500/20 text-amber-300' :
-                      issue.severity === '低置信度' ? 'bg-zinc-700/40 text-zinc-400' :
-                      'bg-emerald-500/20 text-emerald-300'
-                    }`}>
-                      {issue.severity}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       )}
 
-      {/* 矫正方案 */}
+      {/* Correction Plan */}
       {correctionPlan && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-          <h3 className="text-sm font-bold text-zinc-100 mb-4">
-            {lang === 'zh' ? '4周矫正训练方案' : '4-Week Correction Plan'}
-          </h3>
-
-          {/* 周期 Tab */}
-          <div className="flex space-x-1 bg-zinc-950 rounded-lg p-1 mb-4">
-            {([
-              { key: 'week1_2', labelEn: 'Week 1-2 (Activation)', labelZh: '第1-2周（放松激活）' },
-              { key: 'week3_4', labelEn: 'Week 3-4 (Integration)', labelZh: '第3-4周（强化整合）' },
-            ] as const).map(({ key, labelEn, labelZh }) => (
-              <button
-                key={key}
-                onClick={() => setActiveWeek(key)}
-                className={`flex-1 py-2 rounded-md text-xs font-medium transition-all ${
-                  activeWeek === key
-                    ? 'bg-lime-500 text-black'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                {lang === 'zh' ? labelZh : labelEn}
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <h3 className="text-xs font-bold text-gray-800 mb-4">{lang === 'zh' ? '4周矫正训练方案' : '4-Week Correction Plan'}</h3>
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
+            {(['week1_2', 'week3_4'] as const).map(k => (
+              <button key={k} onClick={() => setActiveWeek(k)}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all ${
+                  activeWeek === k ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                }`}>
+                {k === 'week1_2' ? (lang === 'zh' ? '第1-2周' : 'Week 1-2') : (lang === 'zh' ? '第3-4周' : 'Week 3-4')}
               </button>
             ))}
           </div>
-
-          <div className="space-y-3">
+          <div className="space-y-2">
             {correctionPlan[activeWeek].length === 0 ? (
-              <p className="text-zinc-500 text-sm text-center py-4">
-                {lang === 'zh' ? '暂无该阶段矫正动作' : 'No exercises for this phase'}
-              </p>
-            ) : (
-              correctionPlan[activeWeek].map((exercise, idx) => (
-                <div key={idx} className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 flex items-start space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-lime-500/10 border border-lime-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-lime-400 text-xs font-bold">{idx + 1}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm font-bold text-zinc-100">{exercise.name}</span>
-                      <span className="text-xs text-lime-400 font-mono bg-lime-500/10 px-2 py-0.5 rounded ml-2 shrink-0">
-                        {exercise.sets}
-                      </span>
-                    </div>
-                    {exercise.description && (
-                      <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{exercise.description}</p>
-                    )}
-                  </div>
+              <p className="text-sm text-gray-400 text-center py-4">{lang === 'zh' ? '暂无该阶段动作' : 'No exercises'}</p>
+            ) : correctionPlan[activeWeek].map((ex, idx) => (
+              <div key={idx} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+                  style={{ background: activeWeek === 'week1_2' ? '#007AFF' : '#5856D6' }}>{idx + 1}</div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-gray-800">{ex.name}</span>
+                  {ex.description && <p className="text-[10px] text-gray-400 mt-0.5">{ex.description}</p>}
                 </div>
-              ))
-            )}
+                <span className="text-[11px] font-bold text-gray-500 bg-white px-2.5 py-1 rounded-lg">{ex.sets}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
