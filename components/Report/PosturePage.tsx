@@ -1,14 +1,21 @@
 /**
- * PDF 报告第2页 — 体态评估结果（Apple HIG 风格 + 照片保持比例不压缩）
+ * PDF 报告第2页 — 体态评估结果（Apple HIG 风格）
+ * 照片用 canvas 预渲染写死比例，确保 html2canvas 截图时不压缩人物
  */
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Member, Language } from '../../types';
 
 interface PosturePageProps { member: Member; lang: Language; studioName: string; }
 
+const PAGE_W = 794;
+const PADDING = 50;
+const GAP = 12;
+const MAX_H = 240;
+const AVAIL_W = PAGE_W - PADDING * 2;
+
 const S = {
-  page: { width: 794, height: 1123, backgroundColor: '#ffffff', color: '#1D1D1F', padding: '60px 50px', fontFamily: 'Inter, system-ui, -apple-system, sans-serif', boxSizing: 'border-box' as const, display: 'flex', flexDirection: 'column' as const },
+  page: { width: PAGE_W, height: 1123, backgroundColor: '#ffffff', color: '#1D1D1F', padding: `${PADDING}px`, fontFamily: 'Inter, system-ui, -apple-system, sans-serif', boxSizing: 'border-box' as const, display: 'flex', flexDirection: 'column' as const },
   hdr: { borderBottom: '1px solid #E5E5EA', paddingBottom: 15, marginBottom: 30 },
   hdrTxt: { fontSize: 12, color: '#8E8E93', letterSpacing: 2, fontWeight: 500 },
   h2: { fontSize: 24, fontWeight: 800, color: '#1D1D1F', margin: '0 0 24px 0' },
@@ -23,6 +30,46 @@ const sevInfo: Record<string, { border: string; bg: string; text: string }> = {
   '严重': { border: '#FF3B30', bg: 'rgba(255,59,48,0.08)', text: '#BC1C17' },
   '低置信度': { border: '#8E8E93', bg: 'rgba(142,142,147,0.08)', text: '#636366' },
 };
+
+// Canvas 预渲染图片：加载原图后以正确比例绘制到 canvas，html2canvas 直接捕获 canvas 就不会变形
+function useProportionalCanvas(src: string | undefined) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    if (!src) return;
+    const img = new Image();
+    img.onload = () => {
+      const colW = Math.floor((AVAIL_W - GAP * 2) / 3);
+      const ratio = Math.min(colW / img.width, MAX_H / img.height, 1);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      setSize({ w, h });
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+      }
+    };
+    img.src = src;
+  }, [src]);
+
+  return { canvasRef, size };
+}
+
+function PhotoCard({ src, label }: { src?: string; label: string }) {
+  const { canvasRef, size } = useProportionalCanvas(src);
+  if (!src) return null;
+  return (
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ backgroundColor: '#F2F2F7', borderRadius: 12, overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+        <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.45)', padding: '5px 12px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#fff' }}>{label}</div>
+      </div>
+    </div>
+  );
+}
 
 const PosturePage: React.FC<PosturePageProps> = ({ member, lang, studioName }) => {
   const a = member.assessments?.[0];
@@ -41,17 +88,13 @@ const PosturePage: React.FC<PosturePageProps> = ({ member, lang, studioName }) =
         <div><p style={{ fontSize: 14, color: '#8E8E93', margin: '0 0 4px 0' }}>{lang === 'zh' ? '置信度' : 'Confidence'}</p><p style={{ fontSize: 18, fontWeight: 700, color: sc, margin: 0 }}>{(report.confidence * 100).toFixed(0)}%</p></div>
       </div>
 
-      {/* Photos — use contain to preserve aspect ratio */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
-        {[{ src: a.frontImage, lab: lang === 'zh' ? '正面' : 'Front' }, { src: a.sideImage, lab: lang === 'zh' ? '侧面' : 'Side' }, { src: a.backImage, lab: lang === 'zh' ? '背面' : 'Back' }].filter(p => p.src).map((p, i) => (
-          <div key={i} style={{ flex: 1, backgroundColor: '#F2F2F7', borderRadius: 12, overflow: 'hidden', position: 'relative', height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={p.src} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt={p.lab} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.45)', padding: '6px 12px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#fff' }}>{p.lab}</div>
-          </div>
-        ))}
+      {/* Photos — canvas 预渲染，确保 html2canvas 截图时人物比例正确 */}
+      <div style={{ display: 'flex', gap: GAP, marginBottom: 28, alignItems: 'flex-start' }}>
+        <PhotoCard src={a.frontImage} label={lang === 'zh' ? '正面' : 'Front'} />
+        <PhotoCard src={a.sideImage} label={lang === 'zh' ? '侧面' : 'Side'} />
+        <PhotoCard src={a.backImage} label={lang === 'zh' ? '背面' : 'Back'} />
       </div>
 
-      {/* Issues */}
       <div style={{ flex: 1 }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1D1D1F', margin: '0 0 16px 0' }}>{lang === 'zh' ? '检测结果' : 'Results'}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
