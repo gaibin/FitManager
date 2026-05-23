@@ -14,8 +14,8 @@ const S = {
   h2: { fontSize: 24, fontWeight: 800, color: '#1D1D1F', margin: '0 0 24px 0' },
   badge: (bg: string, fg: string) => ({ display: 'inline-block', backgroundColor: bg, color: fg, padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 14 }),
   exItem: { backgroundColor: '#F2F2F7', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 },
-  exNum: (bg: string, fg: string) => ({ width: 28, height: 28, borderRadius: '50%', backgroundColor: bg + '18', border: `1px solid ${bg}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: fg }),
-  exSet: (c: string) => ({ fontSize: 12, fontWeight: 700, color: c, backgroundColor: c + '12', padding: '4px 10px', borderRadius: 6, fontFamily: 'monospace' } as const),
+  exNum: (bg: string, fg: string) => ({ width: 28, height: 28, borderRadius: '50%', backgroundColor: bg + '18', border: `1px solid ${bg}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: fg, lineHeight: 1 } as const),
+  exSet: (c: string) => ({ fontSize: 12, fontWeight: 700, color: c, backgroundColor: c + '12', padding: '4px 10px', borderRadius: 6, fontFamily: 'monospace', lineHeight: 1 } as const),
   aiCard: { backgroundColor: '#F2F2F7', borderRadius: 14, padding: '20px 24px', border: '1px solid #007AFF18', flex: 1 },
   footer: { borderTop: '1px solid #E5E5EA', paddingTop: 15, marginTop: 24, display: 'flex', justifyContent: 'space-between' as const },
   fText: { fontSize: 11, color: '#8E8E93' },
@@ -39,7 +39,7 @@ const PlanPage: React.FC<PlanPageProps> = ({ member, lang, studioName }) => {
             : correctionPlan.week1_2.map((ex, i) => (
               <div key={i} style={S.exItem}>
                 <div style={S.exNum('#007AFF', '#007AFF')}>{i + 1}</div>
-                <div style={{ flex: 1 }}><span style={{ fontSize: 14, fontWeight: 600, color: '#1D1D1F' }}>{ex.name}</span>{ex.description && <p style={{ fontSize: 11, color: '#8E8E93', margin: '2px 0 0 0' }}>{ex.description}</p>}</div>
+                <div style={{ flex: 1 }}><span style={{ fontSize: 14, fontWeight: 600, color: '#1D1D1F' }}>{lang === 'zh' ? ex.name : ex.nameEn}</span>{(lang === 'zh' ? ex.description : ex.descriptionEn) && <p style={{ fontSize: 11, color: '#8E8E93', margin: '2px 0 0 0' }}>{lang === 'zh' ? ex.description : ex.descriptionEn}</p>}</div>
                 <span style={S.exSet('#007AFF')}>{ex.sets}</span>
               </div>
             ))}
@@ -53,7 +53,7 @@ const PlanPage: React.FC<PlanPageProps> = ({ member, lang, studioName }) => {
             : correctionPlan.week3_4.map((ex, i) => (
               <div key={i} style={S.exItem}>
                 <div style={S.exNum('#5856D6', '#5856D6')}>{i + 1}</div>
-                <div style={{ flex: 1 }}><span style={{ fontSize: 14, fontWeight: 600, color: '#1D1D1F' }}>{ex.name}</span>{ex.description && <p style={{ fontSize: 11, color: '#8E8E93', margin: '2px 0 0 0' }}>{ex.description}</p>}</div>
+                <div style={{ flex: 1 }}><span style={{ fontSize: 14, fontWeight: 600, color: '#1D1D1F' }}>{lang === 'zh' ? ex.name : ex.nameEn}</span>{(lang === 'zh' ? ex.description : ex.descriptionEn) && <p style={{ fontSize: 11, color: '#8E8E93', margin: '2px 0 0 0' }}>{lang === 'zh' ? ex.description : ex.descriptionEn}</p>}</div>
                 <span style={S.exSet('#5856D6')}>{ex.sets}</span>
               </div>
             ))}

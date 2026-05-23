@@ -90,14 +90,84 @@ export function normalizeExercise(input: string): string {
     const allNames = [entry.name, ...entry.aliases];
     for (const alias of allNames) {
       if (alias.toLowerCase() === clean.toLowerCase()) return entry.name;
-      // 模糊匹配: 别名包含输入 或 输入包含别名
       if (alias.toLowerCase().includes(clean.toLowerCase()) && clean.length >= 3) return entry.name;
       if (clean.toLowerCase().includes(alias.toLowerCase()) && alias.length >= 3) return entry.name;
     }
   }
 
-  // 无匹配时首字母大写返回
   return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+// 翻译矫正动作名：中文 → 英文
+export function translateExerciseName(name: string, lang: string): string {
+  if (lang === 'en') {
+    const entry = EXERCISE_DICTIONARY.find(
+      e => e.name.toLowerCase() === name.toLowerCase()
+    );
+    if (entry) return entry.name; // dictionary name is already English
+    return name; // fallback
+  }
+  return name; // zh: keep original
+}
+
+// 翻译矫正动作描述
+const DESC_TRANSLATIONS: Record<string, { en: string }> = {
+  '纠正肩部肌力不平衡，弱侧加练': { en: 'Correct shoulder muscle imbalance, focus on weaker side' },
+  '均衡发展三角肌中束': { en: 'Balanced development of medial deltoid' },
+  '加强上背部稳定性': { en: 'Strengthen upper back stability' },
+  '放松脊柱和肩部紧张': { en: 'Relieve spine and shoulder tension' },
+  '加强肩后束和肩袖': { en: 'Strengthen rear delts and rotator cuff' },
+  '核心+单侧负重稳定': { en: 'Core + unilateral load stability' },
+  '改善胸椎灵活性': { en: 'Improve thoracic spine mobility' },
+  '全方位肩袖强化': { en: 'Full range rotator cuff strengthening' },
+  '激活深层颈屈肌，纠正头部前伸': { en: 'Activate deep neck flexors, correct forward head' },
+  '强化颈后肌群': { en: 'Strengthen posterior neck muscles' },
+  '用毛巾垫颈仰卧5分钟': { en: 'Lie on back with towel under neck for 5 min' },
+  '缓慢侧倾头部拉伸': { en: 'Slow lateral neck stretch' },
+  '核心稳定 + 颈胸联动': { en: 'Core stability + neck-thoracic coordination' },
+  '弹力带辅助练习': { en: 'Resistance band assisted exercise' },
+  '仰卧慢速抬离地面': { en: 'Slow supine head lift from ground' },
+  '每小时做10次下颌内收': { en: '10 chin tucks every hour' },
+  '门框式胸肌和肱二头肌拉伸': { en: 'Doorway chest and bicep stretch' },
+  '加强肩后束和菱形肌': { en: 'Strengthen rear delts and rhomboids' },
+  '激活菱形肌和中下斜方': { en: 'Activate rhomboids and mid-low traps' },
+  '仰卧在泡沫轴上前后滚动': { en: 'Roll on foam roller supine' },
+  '俯卧撑结束位加上肩胛前伸': { en: 'Push-up with scapular protraction at top' },
+  '加强肩袖外旋肌': { en: 'Strengthen rotator cuff external rotators' },
+  '宽握距强调菱形肌': { en: 'Wide grip to emphasize rhomboids' },
+  '肩胛骨贴墙滑动': { en: 'Scapular wall slides' },
+  '激活臀大肌，纠正前倾': { en: 'Activate glutes, correct anterior tilt' },
+  '核心稳定训练': { en: 'Core stability training' },
+  '半跪姿拉伸髂腰肌': { en: 'Half-kneeling hip flexor stretch' },
+  '提高腰椎灵活性': { en: 'Improve lumbar spine mobility' },
+  '加强后链肌群': { en: 'Strengthen posterior chain' },
+  '核心抗旋转': { en: 'Anti-rotation core exercise' },
+  '强力激活臀大肌': { en: 'Powerful glute activation' },
+  '放松大腿外侧': { en: 'Release lateral thigh' },
+  '加强股四头肌，膝关节稳定': { en: 'Strengthen quads, stabilize knee' },
+  '激活臀中肌': { en: 'Activate gluteus medius' },
+  '增强本体感觉和下肢稳定': { en: 'Enhance proprioception and lower body stability' },
+  '坐姿体前屈拉伸': { en: 'Seated forward bend hamstring stretch' },
+  '单侧力量和稳定': { en: 'Unilateral strength and stability' },
+  '臀中肌强化': { en: 'Gluteus medius strengthening' },
+  '后链肌群单侧加强': { en: 'Unilateral posterior chain strengthening' },
+  '下犬式拉伸小腿': { en: 'Downward dog calf stretch' },
+  '改善筋膜健康和灵活性': { en: 'Improve fascial health and mobility' },
+  '平板支撑 + 死虫式': { en: 'Plank + dead bug' },
+  '纠正圆肩含胸': { en: 'Correct rounded shoulders' },
+  '激活臀部改善骨盆位': { en: 'Activate glutes to improve pelvic position' },
+  '体前负重，控制深度': { en: 'Front-loaded, controlled depth' },
+  '加强背部肌群': { en: 'Strengthen back muscles' },
+  '单侧力量平衡': { en: 'Unilateral strength balance' },
+  '整体协调和柔韧': { en: 'Overall coordination and flexibility' },
+};
+
+export function translateExerciseDescription(desc: string, lang: string): string {
+  if (lang === 'en') {
+    const t = DESC_TRANSLATIONS[desc];
+    return t ? t.en : desc;
+  }
+  return desc;
 }
 
 // 根据输入搜索匹配建议

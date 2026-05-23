@@ -20,7 +20,7 @@ const S = {
   hdr: { borderBottom: '1px solid #E5E5EA', paddingBottom: 15, marginBottom: 30 },
   hdrTxt: { fontSize: 12, color: '#8E8E93', letterSpacing: 2, fontWeight: 500 },
   h2: { fontSize: 24, fontWeight: 800, color: '#1D1D1F', margin: '0 0 24px 0' },
-  score: (c: string) => ({ width: 100, height: 100, borderRadius: '50%', border: `4px solid ${c}`, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F2F7' }),
+  score: (c: string) => ({ width: 100, height: 100, borderRadius: '50%', border: `4px solid ${c}`, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F2F7', lineHeight: 1 }),
   footer: { borderTop: '1px solid #E5E5EA', paddingTop: 15, marginTop: 24, display: 'flex', justifyContent: 'space-between' as const },
   fText: { fontSize: 11, color: '#8E8E93' },
 };
@@ -106,11 +106,11 @@ const PosturePage: React.FC<PosturePageProps> = ({ member, lang, studioName }) =
               <div key={idx} style={{ backgroundColor: c.bg, border: `1px solid ${c.border}20`, borderRadius: 12, padding: '14px 18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{lang === 'zh' ? issue.name : issue.nameEn}</span>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: c.border + '30', color: c.text, fontWeight: 600 }}>{issue.value.toFixed(1)} {issue.unit}</span>
+                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: c.border + '30', color: c.text, fontWeight: 600, lineHeight: 1 }}>{issue.value.toFixed(1)} {issue.unit}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 11, color: '#8E8E93' }}>{lang === 'zh' ? issue.description : issue.descriptionEn}</span>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: c.border, color: '#fff' }}>{issue.severity}</span>
+                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: c.border, color: '#fff', lineHeight: 1 }}>{issue.severity}</span>
                 </div>
               </div>
             );

@@ -19,7 +19,7 @@ const STYLE = {
   infoValue: { fontSize: 18, fontWeight: 700, color: '#1D1D1F', margin: '4px 0 0 0' },
   statCard: { flex: 1, backgroundColor: '#F2F2F7', borderRadius: 16, padding: '20px', textAlign: 'center' as const },
   statLabel: { fontSize: 11, color: '#8E8E93', textTransform: 'uppercase' as const, letterSpacing: 1, fontWeight: 600 },
-  statValue: { fontSize: 32, fontWeight: 800, margin: '8px 0 0 0', fontFamily: 'Inter, system-ui, sans-serif' },
+  statValue: { fontSize: 32, fontWeight: 800, margin: '8px 0 0 0', fontFamily: 'Inter, system-ui, sans-serif', lineHeight: 1 },
   chartCard: { flex: 1, backgroundColor: '#F2F2F7', borderRadius: 16, padding: '20px 24px' },
   chartTitle: { fontSize: 14, fontWeight: 700, color: '#1D1D1F', margin: '0 0 16px 0' },
   footer: { borderTop: '1px solid #E5E5EA', paddingTop: 15, marginTop: 24, display: 'flex', justifyContent: 'space-between' as const },

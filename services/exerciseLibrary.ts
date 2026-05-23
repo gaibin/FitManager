@@ -1,30 +1,33 @@
 /**
- * 体态矫正运动库 — 当 AI 不可用时提供基于规则的矫正方案
+ * 体态矫正运动库 — 当 AI 不可用时提供基于规则的矫正方案（中英双语）
  */
 
 import type { CorrectionPlan, Exercise } from '../types';
 
 export interface FallbackCorrectionPlan {
-  issueKeywords: string[]; // 匹配体态问题名称的关键词
+  issueKeywords: string[];
   plan: CorrectionPlan;
 }
 
-// 基于规则的矫正方案库
+function ex(name: string, nameEn: string, description: string, descriptionEn: string, sets: string): Exercise {
+  return { name, nameEn, description, descriptionEn, sets };
+}
+
 export const CORRECTION_LIBRARY: FallbackCorrectionPlan[] = [
   {
     issueKeywords: ['高低肩', 'shoulder', '肩膀', '肩'],
     plan: {
       week1_2: [
-        { name: '单侧哑铃推举', description: '纠正肩部肌力不平衡，弱侧加练', sets: '3x10 (弱侧)' },
-        { name: '侧平举', description: '均衡发展三角肌中束', sets: '3x15' },
-        { name: '站姿划船', description: '加强上背部稳定性', sets: '3x12' },
-        { name: '猫牛式伸展', description: '放松脊柱和肩部紧张', sets: '3x10次深呼吸' },
+        ex('单侧哑铃推举', 'Unilateral Dumbbell Press', '纠正肩部肌力不平衡，弱侧加练', 'Correct shoulder imbalance', '3x10'),
+        ex('侧平举', 'Lateral Raise', '均衡发展三角肌中束', 'Balanced deltoid development', '3x15'),
+        ex('站姿划船', 'Upright Row', '加强上背部稳定性', 'Upper back stability', '3x12'),
+        ex('猫牛式伸展', 'Cat-Cow Stretch', '放松脊柱和肩部紧张', 'Release spine tension', '3x10 breaths'),
       ],
       week3_4: [
-        { name: '弹力带面拉', description: '加强肩后束和肩袖', sets: '3x15' },
-        { name: '单臂农夫行走', description: '核心+单侧负重稳定', sets: '3x30m' },
-        { name: '泡沫轴胸椎松动', description: '改善胸椎灵活性', sets: '2分钟' },
-        { name: 'Y-T-W-L 训练', description: '全方位肩袖强化', sets: '3x8 (每个动作)' },
+        ex('弹力带面拉', 'Band Face Pull', '加强肩后束和肩袖', 'Rear delt & rotator cuff', '3x15'),
+        ex('单臂农夫行走', 'Unilateral Farmers Walk', '核心+单侧负重稳定', 'Core + unilateral load', '3x30m'),
+        ex('泡沫轴胸椎松动', 'Foam Roller T-Spine', '改善胸椎灵活性', 'Thoracic mobility', '2 min'),
+        ex('Y-T-W-L 训练', 'Y-T-W-L Drill', '全方位肩袖强化', 'Rotator cuff strengthening', '3x8 each'),
       ],
     },
   },
@@ -32,16 +35,16 @@ export const CORRECTION_LIBRARY: FallbackCorrectionPlan[] = [
     issueKeywords: ['头前引', 'neck', '颈部', '颈椎', 'CVA'],
     plan: {
       week1_2: [
-        { name: '下颌内收', description: '激活深层颈屈肌，纠正头部前伸', sets: '3x10' },
-        { name: '弹力带颈后伸展', description: '强化颈后肌群', sets: '3x12' },
-        { name: '仰卧颈部放松', description: '用毛巾垫颈仰卧5分钟', sets: '2x5分钟' },
-        { name: '胸锁乳突肌拉伸', description: '缓慢侧倾头部拉伸', sets: '每侧3x30s' },
+        ex('下颌内收', 'Chin Tuck', '激活深层颈屈肌，纠正头部前伸', 'Activate deep neck flexors', '3x10'),
+        ex('弹力带颈后伸展', 'Band Neck Extension', '强化颈后肌群', 'Posterior neck strength', '3x12'),
+        ex('仰卧颈部放松', 'Supine Neck Release', '用毛巾垫颈仰卧5分钟', 'Towel under neck 5 min', '2x5 min'),
+        ex('胸锁乳突肌拉伸', 'SCM Stretch', '缓慢侧倾头部拉伸', 'Slow lateral neck stretch', '3x30s each'),
       ],
       week3_4: [
-        { name: '墙天使', description: '核心稳定 + 颈胸联动', sets: '3x10' },
-        { name: '俯身颈部抗阻', description: '弹力带辅助练习', sets: '3x12' },
-        { name: '普拉提式头部抬起', description: '仰卧慢速抬离地面', sets: '3x10' },
-        { name: '日常姿势训练', description: '每小时做10次下颌内收', sets: '全天提醒' },
+        ex('墙天使', 'Wall Angel', '核心稳定 + 颈胸联动', 'Core + neck-thoracic', '3x10'),
+        ex('俯身颈部抗阻', 'Prone Neck Resistance', '弹力带辅助练习', 'Band-assisted', '3x12'),
+        ex('普拉提式头部抬起', 'Pilates Head Lift', '仰卧慢速抬离地面', 'Slow supine head lift', '3x10'),
+        ex('日常姿势训练', 'Posture Habit Drill', '每小时做10次下颌内收', '10 chin tucks hourly', 'All day'),
       ],
     },
   },
@@ -49,16 +52,16 @@ export const CORRECTION_LIBRARY: FallbackCorrectionPlan[] = [
     issueKeywords: ['含胸', '圆肩', 'chest', '胸', 'round'],
     plan: {
       week1_2: [
-        { name: '胸肌拉伸', description: '门框式胸肌和肱二头肌拉伸', sets: '3x30s' },
-        { name: '弹力带面拉', description: '加强肩后束和菱形肌', sets: '3x15' },
-        { name: '俯身飞鸟', description: '激活菱形肌和中下斜方', sets: '3x12' },
-        { name: '泡沫轴胸椎伸展', description: '仰卧在泡沫轴上前后滚动', sets: '2分钟' },
+        ex('胸肌拉伸', 'Chest Stretch', '门框式胸肌和肱二头肌拉伸', 'Doorway chest stretch', '3x30s'),
+        ex('弹力带面拉', 'Band Face Pull', '加强肩后束和菱形肌', 'Rear delt & rhomboids', '3x15'),
+        ex('俯身飞鸟', 'Bent-Over Fly', '激活菱形肌和中下斜方', 'Rhomboids & mid-low traps', '3x12'),
+        ex('泡沫轴胸椎伸展', 'Foam Roller T-Extension', '仰卧在泡沫轴上前后滚动', 'Roll on foam roller', '2 min'),
       ],
       week3_4: [
-        { name: 'Push-up Plus', description: '俯卧撑结束位加上肩胛前伸', sets: '3x10' },
-        { name: '弹力带水平外展', description: '加强肩袖外旋肌', sets: '3x15' },
-        { name: '坐姿划船', description: '宽握距强调菱形肌', sets: '3x12' },
-        { name: '前锯肌激活', description: '肩胛骨贴墙滑动', sets: '3x10' },
+        ex('Push-up Plus', 'Push-up Plus', '俯卧撑结束位加上肩胛前伸', 'Scapular protraction at top', '3x10'),
+        ex('弹力带水平外展', 'Band Horizontal Abduction', '加强肩袖外旋肌', 'Rotator cuff external', '3x15'),
+        ex('坐姿划船', 'Seated Cable Row', '宽握距强调菱形肌', 'Wide grip rhomboids', '3x12'),
+        ex('前锯肌激活', 'Serratus Activation', '肩胛骨贴墙滑动', 'Scapular wall slides', '3x10'),
       ],
     },
   },
@@ -66,16 +69,16 @@ export const CORRECTION_LIBRARY: FallbackCorrectionPlan[] = [
     issueKeywords: ['骨盆', 'pelvic', '倾斜', 'tilt'],
     plan: {
       week1_2: [
-        { name: '臀桥', description: '激活臀大肌，纠正前倾', sets: '3x15' },
-        { name: '平板支撑', description: '核心稳定训练', sets: '3x30s' },
-        { name: '髋屈肌拉伸', description: '半跪姿拉伸髂腰肌', sets: '每侧3x30s' },
-        { name: '猫式伸展', description: '提高腰椎灵活性', sets: '3x10次深呼吸' },
+        ex('臀桥', 'Glute Bridge', '激活臀大肌，纠正前倾', 'Glute activation', '3x15'),
+        ex('平板支撑', 'Plank', '核心稳定训练', 'Core stability', '3x30s'),
+        ex('髋屈肌拉伸', 'Hip Flexor Stretch', '半跪姿拉伸髂腰肌', 'Half-kneeling stretch', '3x30s each'),
+        ex('猫式伸展', 'Cat Stretch', '提高腰椎灵活性', 'Lumbar mobility', '3x10 breaths'),
       ],
       week3_4: [
-        { name: '单腿硬拉', description: '加强后链肌群', sets: '3x10 (每侧)' },
-        { name: '死虫式', description: '核心抗旋转', sets: '3x12 (每侧)' },
-        { name: '臀推', description: '强力激活臀大肌', sets: '3x12' },
-        { name: '髂胫束泡沫轴放松', description: '放松大腿外侧', sets: '每侧2分钟' },
+        ex('单腿硬拉', 'Single-Leg Deadlift', '加强后链肌群', 'Posterior chain', '3x10 each'),
+        ex('死虫式', 'Dead Bug', '核心抗旋转', 'Anti-rotation core', '3x12 each'),
+        ex('臀推', 'Hip Thrust', '强力激活臀大肌', 'Powerful glute activation', '3x12'),
+        ex('髂胫束泡沫轴放松', 'IT Band Foam Roll', '放松大腿外侧', 'Release lateral thigh', '2 min each'),
       ],
     },
   },
@@ -83,69 +86,52 @@ export const CORRECTION_LIBRARY: FallbackCorrectionPlan[] = [
     issueKeywords: ['膝', 'knee', 'O型', 'X型', '腿'],
     plan: {
       week1_2: [
-        { name: '靠墙静蹲', description: '加强股四头肌，膝关节稳定', sets: '3x45s' },
-        { name: '蚌式开合', description: '激活臀中肌', sets: '每侧3x15' },
-        { name: '单腿站立', description: '增强本体感觉和下肢稳定', sets: '每侧3x30s' },
-        { name: '腘绳肌拉伸', description: '坐姿体前屈拉伸', sets: '3x30s' },
+        ex('靠墙静蹲', 'Wall Sit', '加强股四头肌，膝关节稳定', 'Quad strength & knee stability', '3x45s'),
+        ex('蚌式开合', 'Clamshell', '激活臀中肌', 'Gluteus medius activation', '3x15 each'),
+        ex('单腿站立', 'Single-Leg Stand', '增强本体感觉和下肢稳定', 'Proprioception & stability', '3x30s each'),
+        ex('腘绳肌拉伸', 'Hamstring Stretch', '坐姿体前屈拉伸', 'Seated forward bend', '3x30s'),
       ],
       week3_4: [
-        { name: '保加利亚分腿蹲', description: '单侧力量和稳定', sets: '3x10 (每侧)' },
-        { name: '侧向弹力带走', description: '臀中肌强化', sets: '3x15步 (每侧)' },
-        { name: '单腿臀桥', description: '后链肌群单侧加强', sets: '3x10 (每侧)' },
-        { name: '小腿肌群拉伸', description: '下犬式拉伸小腿', sets: '3x30s' },
+        ex('保加利亚分腿蹲', 'Bulgarian Split Squat', '单侧力量和稳定', 'Unilateral strength', '3x10 each'),
+        ex('侧向弹力带走', 'Lateral Band Walk', '臀中肌强化', 'Glute med strengthening', '3x15 each'),
+        ex('单腿臀桥', 'Single-Leg Glute Bridge', '后链肌群单侧加强', 'Unilateral posterior chain', '3x10 each'),
+        ex('小腿肌群拉伸', 'Calf Stretch', '下犬式拉伸小腿', 'Downward dog stretch', '3x30s'),
       ],
     },
   },
 ];
 
-// 默认通用矫正方案（无法匹配时使用）
 export const DEFAULT_CORRECTION_PLAN: CorrectionPlan = {
   week1_2: [
-    { name: '泡沫轴全身放松', description: '改善筋膜健康和灵活性', sets: '10分钟' },
-    { name: '核心激活', description: '平板支撑 + 死虫式', sets: '3x30s + 3x10' },
-    { name: '弹力带面拉', description: '纠正圆肩含胸', sets: '3x15' },
-    { name: '臀桥', description: '激活臀部改善骨盆位', sets: '3x15' },
+    ex('泡沫轴全身放松', 'Full-Body Foam Roll', '改善筋膜健康和灵活性', 'Fascial health & mobility', '10 min'),
+    ex('核心激活', 'Core Activation', '平板支撑 + 死虫式', 'Plank + dead bug', '3x30s + 3x10'),
+    ex('弹力带面拉', 'Band Face Pull', '纠正圆肩含胸', 'Correct rounded shoulders', '3x15'),
+    ex('臀桥', 'Glute Bridge', '激活臀部改善骨盆位', 'Glute activation', '3x15'),
   ],
   week3_4: [
-    { name: '深蹲', description: '体前负重，控制深度', sets: '3x12' },
-    { name: '俯身划船', description: '加强背部肌群', sets: '3x12' },
-    { name: '保加利亚分腿蹲', description: '单侧力量平衡', sets: '3x10 (每侧)' },
-    { name: '瑜伽太阳致敬式', description: '整体协调和柔韧', sets: '5轮' },
+    ex('深蹲', 'Squat', '体前负重，控制深度', 'Front-loaded, controlled', '3x12'),
+    ex('俯身划船', 'Bent-Over Row', '加强背部肌群', 'Back strengthening', '3x12'),
+    ex('保加利亚分腿蹲', 'Bulgarian Split Squat', '单侧力量平衡', 'Unilateral balance', '3x10 each'),
+    ex('瑜伽太阳致敬式', 'Sun Salutation', '整体协调和柔韧', 'Coordination & flexibility', '5 rounds'),
   ],
 };
 
-// 根据体态问题名称匹配矫正方案
 export function matchCorrectionPlan(issueNames: string[]): CorrectionPlan {
   for (const entry of CORRECTION_LIBRARY) {
-    for (const issueName of issueNames) {
-      const match = entry.issueKeywords.some((kw) =>
-        issueName.toLowerCase().includes(kw.toLowerCase())
-      );
-      if (match) return entry.plan;
+    for (const name of issueNames) {
+      if (entry.issueKeywords.some(kw => name.toLowerCase().includes(kw.toLowerCase()))) return entry.plan;
     }
   }
   return DEFAULT_CORRECTION_PLAN;
 }
 
-// 生成 AI 不可用时的默认建议文字
-export function generateDefaultRecommendation(issueNames: string[], lang: 'en' | 'zh'): string {
-  if (issueNames.length === 0) {
+export function generateDefaultRecommendation(issues: string[], lang: 'en' | 'zh'): string {
+  if (issues.length === 0) {
     return lang === 'zh'
       ? '未检测到明显体态问题。请保持良好的训练习惯，注意动作规范，定期进行体态评估。'
-      : 'No significant postural issues detected. Maintain good training habits, focus on proper form, and schedule regular posture assessments.';
+      : 'No significant postural issues detected. Maintain good training habits and schedule regular assessments.';
   }
-
-  const zhTemplate = `根据本次体态评估结果，检测到以下问题：${issueNames.join('、')}。建议：
-1. 训练前后充分热身和拉伸，重视推拉动作平衡
-2. 每周安排2-3次矫正训练，优先改善最严重的问题
-3. 保持日常良好姿势习惯，避免久坐和单侧负荷
-4. 建议4周后重新评估，跟踪改善进度`;
-
-  const enTemplate = `Based on the posture assessment, the following issues were detected: ${issueNames.join(', ')}. Recommendations:
-1. Warm up thoroughly before workouts and focus on push-pull exercise balance
-2. Schedule 2-3 correction training sessions per week, prioritizing the most severe issues
-3. Maintain good daily posture habits and avoid prolonged sitting/unilateral loading
-4. Schedule a follow-up assessment in 4 weeks to track progress`;
-
-  return lang === 'zh' ? zhTemplate : enTemplate;
+  return lang === 'zh'
+    ? `检测到以下问题：${issues.join('、')}。建议每周安排2-3次矫正训练，优先改善最严重的问题，4周后重新评估。`
+    : `Detected issues: ${issues.join(', ')}. Schedule 2-3 correction sessions per week, prioritize the most severe issue, and reassess in 4 weeks.`;
 }

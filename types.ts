@@ -54,7 +54,9 @@ export interface CorrectionPlan {
 
 export interface Exercise {
   name: string;
+  nameEn: string;
   description: string;
+  descriptionEn: string;
   sets: string; // 如 "3x15" 或 "3x30s"
 }
 

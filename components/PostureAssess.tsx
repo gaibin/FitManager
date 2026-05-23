@@ -7,6 +7,7 @@ import { Language, PostureAssessment, PostureReport, PostureIssue, CorrectionPla
 import { analyzePosture } from '../services/postureService';
 import { compressImage, validateImage } from '../services/imageUtils';
 import { matchCorrectionPlan, generateDefaultRecommendation } from '../services/exerciseLibrary';
+import { translateExerciseName, translateExerciseDescription } from '../services/exerciseStandardizer';
 import { TRANSLATIONS } from '../constants';
 
 interface PostureAssessProps {
@@ -110,8 +111,16 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
       setReport({ score: data.score, confidence: data.confidence, issues });
       const plan = data.correction_plan || { week1_2: [], week3_4: [] };
       const finalPlan: CorrectionPlan = {
-        week1_2: (plan.week1_2 || []).map((e: any) => ({ name: e.name, description: e.description || '', sets: e.sets || '3x12' })),
-        week3_4: (plan.week3_4 || []).map((e: any) => ({ name: e.name, description: e.description || '', sets: e.sets || '3x10' })),
+        week1_2: (plan.week1_2 || []).map((e: any) => ({
+          name: e.name, nameEn: translateExerciseName(e.name, 'en'),
+          description: e.description || '', descriptionEn: translateExerciseDescription(e.description || '', 'en'),
+          sets: e.sets || '3x12',
+        })),
+        week3_4: (plan.week3_4 || []).map((e: any) => ({
+          name: e.name, nameEn: translateExerciseName(e.name, 'en'),
+          description: e.description || '', descriptionEn: translateExerciseDescription(e.description || '', 'en'),
+          sets: e.sets || '3x10',
+        })),
       };
       setCorrectionPlan(finalPlan);
       await onSaveAssessment({
