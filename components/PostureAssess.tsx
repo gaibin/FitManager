@@ -112,6 +112,7 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
         date: new Date().toISOString().split('T')[0],
         frontImage: images.front!, sideImage: images.side!, backImage: images.back || undefined,
         report: { score: data.score, confidence: data.confidence, issues }, correctionPlan: finalPlan,
+        aiRecommendation: generateDefaultRecommendation(issues.map(i => i.name), lang),
       });
     } catch (err: any) {
       console.warn('Backend unavailable, using fallback:', err.message);

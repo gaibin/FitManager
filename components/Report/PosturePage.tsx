@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Member, Language } from '../../types';
+import { Member, Language, PostureIssue } from '../../types';
+import PostureHeatmap from '../PostureHeatmap';
 
 interface PosturePageProps { member: Member; lang: Language; studioName: string; }
 
@@ -58,13 +59,14 @@ function useProportionalCanvas(src: string | undefined) {
   return { canvasRef, size };
 }
 
-function PhotoCard({ src, label }: { src?: string; label: string }) {
+function PhotoCard({ src, label, issues }: { src?: string; label: string; issues: PostureIssue[] }) {
   const { canvasRef, size } = useProportionalCanvas(src);
   if (!src) return null;
   return (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{ backgroundColor: '#F2F2F7', borderRadius: 12, overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
         <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%' }} />
+        {size && <PostureHeatmap issues={issues} width={size.w} height={size.h} opacity={0.45} />}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.45)', padding: '5px 12px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#fff' }}>{label}</div>
       </div>
     </div>
@@ -90,9 +92,9 @@ const PosturePage: React.FC<PosturePageProps> = ({ member, lang, studioName }) =
 
       {/* Photos — canvas 预渲染，确保 html2canvas 截图时人物比例正确 */}
       <div style={{ display: 'flex', gap: GAP, marginBottom: 28, alignItems: 'flex-start' }}>
-        <PhotoCard src={a.frontImage} label={lang === 'zh' ? '正面' : 'Front'} />
-        <PhotoCard src={a.sideImage} label={lang === 'zh' ? '侧面' : 'Side'} />
-        <PhotoCard src={a.backImage} label={lang === 'zh' ? '背面' : 'Back'} />
+        <PhotoCard src={a.frontImage} label={lang === 'zh' ? '正面' : 'Front'} issues={report.issues} />
+        <PhotoCard src={a.sideImage} label={lang === 'zh' ? '侧面' : 'Side'} issues={report.issues} />
+        <PhotoCard src={a.backImage} label={lang === 'zh' ? '背面' : 'Back'} issues={report.issues} />
       </div>
 
       <div style={{ flex: 1 }}>

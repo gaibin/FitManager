@@ -12,6 +12,8 @@ import ImageUpload from './ImageUpload';
 import WellnessScore from './WellnessScore';
 import AssessmentTrends from './AssessmentTrends';
 import PostureRadar from './PostureRadar';
+import MemberGoals from './MemberGoals';
+import CorrelationAnalysis from './CorrelationAnalysis';
 import { exportMemberHistory } from '../services/excelService';
 import { Member, Language, Workout, WellnessScore as WellnessScoreType } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -168,6 +170,9 @@ const Dashboard: React.FC<DashboardProps> = ({
       {latestIssues.length > 0 && (
         <PostureRadar issues={latestIssues} lang={lang} />
       )}
+      {(member.assessments?.length ?? 0) >= 2 && (
+        <CorrelationAnalysis member={member} lang={lang} />
+      )}
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -184,6 +189,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               onEditSession={onEditSession} />
           </div>
           <AIAdvisor member={member} lang={lang} />
+          <MemberGoals lang={lang} member={member} />
           <ImageUpload lang={lang} onUpload={onUploadPhoto} currentImage={member.photoUrl} />
         </div>
       </div>
