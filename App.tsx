@@ -3,7 +3,7 @@
  * 状态逻辑已拆分为自定义 hooks: useAuth / useMembers / useWorkouts
  */
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { HashRouter, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -32,6 +32,8 @@ interface AppContentProps {
   setLang: React.Dispatch<React.SetStateAction<Language>>;
   studioName: string;
   setStudioName: React.Dispatch<React.SetStateAction<string>>;
+  studioBrand: { logo?: string; coachName?: string; accentColor?: string };
+  setStudioBrand: React.Dispatch<React.SetStateAction<{ logo?: string; coachName?: string; accentColor?: string }>>;
   editingName: boolean;
   setEditingName: React.Dispatch<React.SetStateAction<boolean>>;
   members: any[];
@@ -55,7 +57,8 @@ interface AppContentProps {
 }
 
 const AppContent: React.FC<AppContentProps> = ({
-  lang, setLang, studioName, setStudioName, editingName, setEditingName,
+  lang, setLang, studioName, setStudioName, studioBrand, setStudioBrand,
+  editingName, setEditingName,
   members, selectedMemberId, setSelectedMemberId,
   user, isAdmin, handleLogout, handleAddMember, handleDeleteMember,
   handleSaveSession, handleUpdateWorkout, handleDeleteWorkout,
@@ -84,6 +87,7 @@ const AppContent: React.FC<AppContentProps> = ({
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <header className="glass h-16 border-b border-black/[0.04] flex justify-between items-center px-6 md:px-8 z-10 shrink-0">
           <div className="flex items-center space-x-4">
+            {studioBrand.logo && <img src={studioBrand.logo} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />}
             {editingName ? (
               <input autoFocus
                 className="bg-gray-100 border border-gray-200 text-[#007AFF] text-lg font-bold px-3 py-1 rounded-xl outline-none focus:ring-2 focus:ring-[#007AFF]/20 transition-all"
@@ -156,7 +160,7 @@ const AppContent: React.FC<AppContentProps> = ({
               </div>
             }>
               {selectedMember ? (
-                <MemberReport lang={lang} member={selectedMember} studioName={studioName} />
+                <MemberReport lang={lang} member={selectedMember} studioName={studioName} studioBrand={studioBrand} />
               ) : (
                 <div className="flex h-full items-center justify-center">
                   <div className="text-base font-semibold text-gray-400">{TRANSLATIONS.selectMember[lang]}</div>
@@ -173,7 +177,7 @@ const AppContent: React.FC<AppContentProps> = ({
                 </div>
               </div>
             }>
-              <Settings lang={lang} studioName={studioName} onStudioUpdate={(name, _, __) => setStudioName(name)} />
+              <Settings lang={lang} studioName={studioName} onStudioUpdate={(name, coach, logo) => { setStudioName(name); setStudioBrand(prev => ({ ...prev, coachName: coach, logo })); }} />
             </Suspense>
           </div>
         </main>
@@ -185,8 +189,22 @@ const AppContent: React.FC<AppContentProps> = ({
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('en');
   const [studioName, setStudioName] = useState('NEONFIT STUDIO');
+  const [studioBrand, setStudioBrand] = useState<{ logo?: string; coachName?: string; accentColor?: string }>({});
   const [editingName, setEditingName] = useState(false);
   const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
+
+  // 加载已保存的品牌设置
+  useEffect(() => {
+    (async () => {
+      try {
+        const c = await db.getStudioConfig();
+        if (c) {
+          if (c.name) setStudioName(c.name);
+          setStudioBrand({ logo: c.logo, coachName: c.coachName, accentColor: c.accentColor });
+        }
+      } catch {}
+    })();
+  }, []);
 
   // 自定义 hooks 替代原来散落在 App 中的状态
   const auth = useAuth();
@@ -206,6 +224,7 @@ const App: React.FC = () => {
       <AppContent
         lang={lang} setLang={setLang}
         studioName={studioName} setStudioName={setStudioName}
+        studioBrand={studioBrand} setStudioBrand={setStudioBrand}
         editingName={editingName} setEditingName={setEditingName}
         members={members.members}
         setMembers={members.setMembers}

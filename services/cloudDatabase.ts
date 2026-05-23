@@ -2,17 +2,17 @@ import { getSupabaseClient } from './supabaseClient';
 import type { Member, Workout } from '../types';
 
 /**
- * 基于 Supabase 的云端数据库，实现与原 MockDatabase 相同的接口
- * 约定的表结构见 README 或下方注释：
+ * 基于 Supabase 的云端数据库，实现与�?MockDatabase 相同的接�?
+ * 约定的表结构�?README 或下方注释：
  *
- * 表 members:
+ * �?members:
  *  - id: uuid (primary key)
  *  - name: text
  *  - avatar: text
  *  - join_date: text (YYYY-MM-DD)
  *  - photo_url: text (nullable)
  *
- * 表 workouts:
+ * �?workouts:
  *  - id: uuid (primary key)
  *  - member_id: uuid (fk -> members.id)
  *  - date: text
@@ -27,7 +27,7 @@ class CloudDatabase {
 
   async getMembers(): Promise<Member[]> {
     const supabase = getSupabaseClient();
-    // 拉取所有会员与训练记录，在前端组装成 Member[]
+    // 拉取所有会员与训练记录，在前端组装�?Member[]
     const { data: memberRows, error: memberError } = await supabase
       .from('members')
       .select('*')
@@ -119,7 +119,7 @@ class CloudDatabase {
 
   async deleteMember(id: string): Promise<void> {
     const supabase = getSupabaseClient();
-    // 先删 workouts，再删 member（也可以在数据库里配 FK ON DELETE CASCADE）
+    // 先删 workouts，再�?member（也可以在数据库里配 FK ON DELETE CASCADE�?
     const { error: wError } = await supabase
       .from('workouts')
       .delete()
@@ -236,6 +236,10 @@ class CloudDatabase {
   async saveAIConfig(config: any): Promise<void> {
     console.warn('[Supabase] saveAIConfig not implemented for cloud mode.');
   }
+
+  async saveStudioConfig(s: any): Promise<void> {}
+
+  async getStudioConfig(): Promise<any> { return null; }
 
   async getAIConfig(): Promise<any | null> {
     return null;

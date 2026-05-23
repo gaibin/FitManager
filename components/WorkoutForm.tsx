@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Language, Workout } from '../types';
 import { TRANSLATIONS } from '../constants';
+import TrainingTemplates from './TrainingTemplates';
 
 interface WorkoutFormProps {
   lang: Language;
@@ -74,6 +75,15 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ lang, onSaveSession, initialD
           {TRANSLATIONS.addLog[lang]}
         </button>
       </div>
+
+      {/* Training Templates */}
+      {!isEditing && (
+        <div className="mb-4">
+          <TrainingTemplates lang={lang} onAssign={(workouts) => {
+            setSession(prev => [...prev, ...workouts.map(w => ({ ...w, id: Math.random().toString(36).substr(2, 6) }))]);
+          }} />
+        </div>
+      )}
 
       {session.length > 0 && (
         <div className="mb-4 space-y-1.5">

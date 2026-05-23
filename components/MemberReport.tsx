@@ -2,37 +2,32 @@
  * 报告导出页面 — Apple HIG 风格，预览 PDF + 导出下载
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Member, Language } from '../types';
 import { generatePDF } from '../services/pdfGenerator';
-import { db } from '../services/localDatabase';
 import CoverPage from './Report/CoverPage';
 import PosturePage from './Report/PosturePage';
 import PlanPage from './Report/PlanPage';
 import HistoryPage from './Report/HistoryPage';
 
-interface MemberReportProps { lang: Language; member: Member; studioName: string; }
+interface MemberReportProps { lang: Language; member: Member; studioName: string; studioBrand?: { logo?: string; coachName?: string; accentColor?: string }; }
 
 interface PreviewCardProps { label: string; children: React.ReactNode; }
-
 const PreviewCard: React.FC<PreviewCardProps> = ({ label, children }) => (
   <div className="card-hover bg-white rounded-2xl overflow-hidden border border-gray-100" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
     <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold text-gray-400 uppercase tracking-[0.08em]">{label}</div>
     <div className="overflow-hidden" style={{ height: 280 }}>
-      <div className="scale-[0.45] origin-top-left" style={{ width: 794 }}>
-        {children}
-      </div>
+      <div className="scale-[0.45] origin-top-left" style={{ width: 794 }}>{children}</div>
     </div>
   </div>
 );
 
-const MemberReport: React.FC<MemberReportProps> = ({ lang, member, studioName }) => {
+const MemberReport: React.FC<MemberReportProps> = ({ lang, member, studioName, studioBrand }) => {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState('');
-  const [branding, setBranding] = useState<{ logo?: string; coachName?: string; accentColor?: string }>({});
 
-  useEffect(() => { (async () => { const c = await db.getStudioConfig(); if (c) setBranding(c); })(); }, []);
+  const branding = studioBrand || {};
 
   const coverRef = useRef<HTMLDivElement>(null);
   const postureRef = useRef<HTMLDivElement>(null);

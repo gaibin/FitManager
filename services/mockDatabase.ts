@@ -129,6 +129,11 @@ class MockDatabase {
       resolve();
     });
   }
+
+  async saveStudioConfig(s: any): Promise<void> { /* stub */ }
+  async getStudioConfig(): Promise<any> { return null; }
+  async getAIConfig(): Promise<any> { return null; }
+  async saveAIConfig(c: any): Promise<void> {}
 }
 
 export const db = new MockDatabase();
