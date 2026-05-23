@@ -66,6 +66,13 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
     }
   }, [report]);
 
+  // 切换会员时清空状态
+  useEffect(() => {
+    setImages({ front: null, side: null, back: null });
+    setReport(null); setCorrectionPlan(null); setError('');
+    setHeight(heightCm); setMemberGender(gender);
+  }, [memberId]);
+
   const handleFileChange = useCallback(async (key: string, file: File) => {
     const err = validateImage(file);
     if (err) { setError(err); return; }

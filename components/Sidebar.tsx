@@ -29,6 +29,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+
+  const filtered = search.trim()
+    ? members.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+    : members;
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,53 +45,41 @@ const Sidebar: React.FC<SidebarProps> = ({
       return;
     }
     onAddMember?.(trimmed);
-    setNewName('');
-    setError('');
-    setIsAdding(false);
+    setNewName(''); setError(''); setIsAdding(false);
   };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (window.confirm(TRANSLATIONS.confirmDelete[lang])) {
-      onDeleteMember?.(id);
-    }
+    if (window.confirm(TRANSLATIONS.confirmDelete[lang])) onDeleteMember?.(id);
   };
 
   return (
     <div className="w-full md:w-72 h-full flex flex-col fixed md:relative z-20 overflow-hidden border-r border-black/5" style={{ background: 'rgba(250,250,252,0.85)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' }}>
-      {/* Brand */}
       <div className="px-7 pt-7 pb-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}>
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           </div>
           <div>
-            <h1 className="text-base font-extrabold tracking-tight" style={{ color: '#1D1D1F' }}>NeonFit</h1>
-            <p className="text-[10px] font-medium tracking-wider" style={{ color: '#8E8E93' }}>STUDIO MANAGER</p>
+            <h1 className="text-base font-extrabold tracking-tight text-gray-800">NeonFit</h1>
+            <p className="text-[10px] font-medium tracking-wider text-gray-400">STUDIO MANAGER</p>
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="px-4 space-y-0.5 mb-4">
         {NAV_ITEMS.map(item => (
-          <button
-            key={item.path}
-            onClick={() => onNavigate?.(item.path)}
+          <button key={item.path} onClick={() => onNavigate?.(item.path)}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-              currentPath === item.path
-                ? 'text-white shadow-sm scale-press'
-                : 'text-gray-500 hover:text-gray-800 hover:bg-black/[0.03]'
+              currentPath === item.path ? 'text-white shadow-sm scale-press' : 'text-gray-500 hover:text-gray-800 hover:bg-black/[0.03]'
             }`}
-            style={currentPath === item.path ? { background: 'linear-gradient(135deg, #007AFF, #5856D6)' } : {}}
-          >
+            style={currentPath === item.path ? { background: 'linear-gradient(135deg, #007AFF, #5856D6)' } : {}}>
             <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d={item.icon}/></svg>
             <span>{lang === 'zh' ? item.labelZh : item.labelEn}</span>
           </button>
         ))}
       </nav>
 
-      {/* Members Header */}
       <div className="px-7 py-1 flex items-center justify-between">
         <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-400 select-none">Members</span>
         {onAddMember && (
@@ -98,8 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {isAdding && (
         <form onSubmit={handleAddSubmit} className="px-4 pt-2 pb-1">
-          <input autoFocus type="text" value={newName} onChange={e => setNewName(e.target.value)}
-            placeholder={TRANSLATIONS.newMemberName[lang]}
+          <input autoFocus type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder={TRANSLATIONS.newMemberName[lang]}
             className="w-full bg-black/[0.03] border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/10 transition-all text-gray-800 mb-1.5" />
           {error && <p className="text-[#FF3B30] text-[11px] mb-1.5 font-medium">{error}</p>}
           <button type="submit" className="w-full bg-[#007AFF] hover:bg-[#0066d6] text-white text-xs font-semibold py-2 rounded-xl transition-colors scale-press">
@@ -108,30 +100,28 @@ const Sidebar: React.FC<SidebarProps> = ({
         </form>
       )}
 
-      {/* Members List */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-0.5">
-        {members.map(m => (
+        <div className="relative mb-2">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" strokeWidth="2"/><path strokeLinecap="round" d="M21 21l-4.35-4.35" strokeWidth="2"/></svg>
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={lang === 'zh' ? '\u641c\u7d22\u4f1a\u5458...' : 'Search members...'}
+            className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-8 pr-3 py-2 text-xs text-gray-800 outline-none focus:border-[#007AFF]/30 transition-all" />
+        </div>
+        {filtered.map(m => (
           <div key={m.id} onClick={() => { onSelectMember(m.id); onNavigate?.('/'); }}
             className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group ${
-              selectedMemberId === m.id
-                ? 'bg-[#007AFF]/8'
-                : 'hover:bg-black/[0.03]'
-            }`}
-          >
+              selectedMemberId === m.id ? 'bg-[#007AFF]/8' : 'hover:bg-black/[0.03]'
+            }`}>
             <div className="relative shrink-0">
               <img src={m.avatar} alt={m.name}
                 className={`w-9 h-9 rounded-xl object-cover transition-all ${selectedMemberId === m.id ? 'ring-2 ring-[#007AFF]/30' : ''}`} />
-              {selectedMemberId === m.id && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#34C759] border-2 border-white" />
-              )}
+              {selectedMemberId === m.id && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#34C759] border-2 border-white" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate text-gray-800">{m.name}</p>
-              <p className="text-[10px] text-gray-400 truncate">{m.heightCm}cm · {m.gender === 'male' ? (lang === 'zh' ? '男' : 'Male') : (lang === 'zh' ? '女' : 'Female')}</p>
+              <p className="text-[10px] text-gray-400 truncate">{m.heightCm}cm &middot; {m.gender === 'male' ? (lang === 'zh' ? '\u7537' : 'Male') : (lang === 'zh' ? '\u5973' : 'Female')}</p>
             </div>
-            {selectedMemberId === m.id && (
-              <div className="w-1.5 h-1.5 rounded-full bg-[#007AFF]" />
-            )}
+            {selectedMemberId === m.id && <div className="w-1.5 h-1.5 rounded-full bg-[#007AFF]" />}
             {onDeleteMember && (
               <button onClick={e => handleDelete(e, m.id)}
                 className="absolute right-2 p-1.5 rounded-lg text-gray-400 hover:text-[#FF3B30] hover:bg-[#FF3B30]/5 opacity-0 group-hover:opacity-100 transition-all">
@@ -142,7 +132,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </div>
 
-      {/* User */}
       {user && (
         <div className="p-4 border-t border-black/[0.04]">
           <div className="flex items-center gap-3 px-1">
@@ -151,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">{user.username}</p>
-              <p className="text-[10px] text-gray-400">{user.role === 'admin' ? (lang === 'zh' ? '管理员' : 'Admin') : (lang === 'zh' ? '会员' : 'Member')}</p>
+              <p className="text-[10px] text-gray-400">{user.role === 'admin' ? (lang === 'zh' ? '\u7ba1\u7406\u5458' : 'Admin') : (lang === 'zh' ? '\u4f1a\u5458' : 'Member')}</p>
             </div>
             {onLogout && (
               <button onClick={onLogout} className="text-gray-400 hover:text-[#FF3B30] transition-colors p-1">

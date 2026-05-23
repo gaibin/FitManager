@@ -15,6 +15,7 @@ import { db as localDb } from './services/localDatabase';
 import { useAuth } from './hooks/useAuth';
 import { useMembers } from './hooks/useMembers';
 import { useWorkouts } from './hooks/useWorkouts';
+import { useUndo } from './components/UndoProvider';
 import { Language, Workout } from './types';
 import { TRANSLATIONS } from './constants';
 
@@ -206,9 +207,18 @@ const App: React.FC = () => {
     })();
   }, []);
 
+  const undo = useUndo();
+
   // 自定义 hooks 替代原来散落在 App 中的状态
   const auth = useAuth();
-  const members = useMembers({ db, isAdmin: auth.isAdmin, userId: auth.user?.memberId });
+  const members = useMembers({
+    db, isAdmin: auth.isAdmin, userId: auth.user?.memberId,
+    onMemberDeleted: (m) => undo.pushUndo({
+      key: `del-member-${m.id}`,
+      message: `${m.name} ${lang === 'zh' ? '已删除' : 'deleted'}`,
+      undo: async () => { await db.addMember(m.name, { joinDate: m.joinDate, avatar: m.avatar, gender: m.gender, heightCm: m.heightCm }); members.setMembers(prev => [...prev, m]); },
+    }),
+  });
   const workouts = useWorkouts({
     db,
     selectedMemberId: members.selectedMemberId,
