@@ -13,6 +13,7 @@ interface PostureAssessProps {
   lang: Language; memberId: string; memberName: string;
   heightCm: number; gender: 'male' | 'female';
   onSaveAssessment: (assessment: PostureAssessment) => Promise<void>;
+  previousAssessment?: PostureAssessment;
 }
 
 const PHOTO_TYPES = [
@@ -42,7 +43,7 @@ function downloadImage(dataUrl: string, fileName: string) {
 }
 
 const PostureAssess: React.FC<PostureAssessProps> = ({
-  lang, memberId, memberName, heightCm, gender, onSaveAssessment,
+  lang, memberId, memberName, heightCm, gender, onSaveAssessment, previousAssessment,
 }) => {
   const [images, setImages] = useState<Record<string, string | null>>({ front: null, side: null, back: null });
   const [height, setHeight] = useState(heightCm);
@@ -287,6 +288,38 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
                 <span className="text-[11px] font-bold text-gray-500 bg-white px-2.5 py-1 rounded-lg">{ex.sets}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Before/After Comparison */}
+      {previousAssessment && report && (
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <h3 className="text-xs font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <svg className="w-4 h-4 text-[#5856D6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            {lang === 'zh' ? '历史对比' : 'Before / After'}
+            <span className="text-[10px] font-normal text-gray-400 ml-2">
+              {previousAssessment.date} → {new Date().toISOString().split('T')[0]}
+            </span>
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Previous Score */}
+            <div className="bg-gray-50 rounded-xl p-4 text-center">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1">{lang === 'zh' ? '上次' : 'Before'}</p>
+              <p className="text-2xl font-extrabold text-gray-800">{previousAssessment.report.score}</p>
+              <p className="text-[10px] text-gray-400">{previousAssessment.date}</p>
+            </div>
+            {/* Current Score */}
+            <div className="rounded-xl p-4 text-center" style={{ background: `linear-gradient(135deg, ${report.score >= previousAssessment.report.score ? '#34C75915' : '#FF3B3015'}, transparent)` }}>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1">{lang === 'zh' ? '本次' : 'After'}</p>
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-2xl font-extrabold text-gray-800">{report.score}</p>
+                <span className={`text-sm font-bold ${report.score >= previousAssessment.report.score ? 'text-[#34C759]' : 'text-[#FF3B30]'}`}>
+                  {report.score >= previousAssessment.report.score ? '+' : ''}{(report.score - previousAssessment.report.score).toFixed(0)}
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-400">{lang === 'zh' ? '综合评分' : 'Current Score'}</p>
+            </div>
           </div>
         </div>
       )}

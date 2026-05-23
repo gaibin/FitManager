@@ -4,7 +4,7 @@
  */
 
 import Dexie, { type Table } from 'dexie';
-import type { Member, Workout, PostureAssessment, AIProviderConfig } from '../types';
+import type { Member, Workout, PostureAssessment, AIProviderConfig, TrainingTemplate, MemberGoal } from '../types';
 
 interface MemberRow {
   id: string;
@@ -37,19 +37,34 @@ interface ConfigRow {
   value: any;
 }
 
+interface TemplateRow {
+  id: string;
+  data: TrainingTemplate;
+}
+
+interface GoalRow {
+  id: string;
+  memberId: string;
+  data: MemberGoal;
+}
+
 class NeonFitDB extends Dexie {
   members!: Table<MemberRow, string>;
   workouts!: Table<WorkoutRow, string>;
   assessments!: Table<AssessmentRow, string>;
   configs!: Table<ConfigRow, string>;
+  templates!: Table<TemplateRow, string>;
+  goals!: Table<GoalRow, string>;
 
   constructor() {
     super('NeonFitStudioDB');
-    this.version(1).stores({
+    this.version(2).stores({
       members: 'id',
       workouts: 'id, memberId, date',
       assessments: 'id, memberId',
       configs: 'key',
+      templates: 'id',
+      goals: 'id, memberId',
     });
   }
 }
@@ -221,13 +236,72 @@ class LocalDatabase {
 
   // --- Studio Config ---
 
-  async saveStudioConfig(config: { name: string; logo?: string }): Promise<void> {
+  async saveStudioConfig(config: {
+    name: string; logo?: string; coachName?: string;
+    accentColor?: string; phone?: string; email?: string;
+  }): Promise<void> {
     await dexieDb.configs.put({ key: 'studio_config', value: config });
   }
 
-  async getStudioConfig(): Promise<{ name: string; logo?: string } | null> {
+  async getStudioConfig(): Promise<any> {
     const row = await dexieDb.configs.get('studio_config');
     return row ? row.value : null;
+  }
+
+  // --- Training Templates ---
+
+  async saveTemplate(template: TrainingTemplate): Promise<void> {
+    await dexieDb.templates.put({ id: template.id, data: template });
+  }
+
+  async getTemplates(): Promise<TrainingTemplate[]> {
+    return (await dexieDb.templates.toArray()).map(r => r.data);
+  }
+
+  async deleteTemplate(id: string): Promise<void> {
+    await dexieDb.templates.delete(id);
+  }
+
+  async initDefaultTemplates(): Promise<void> {
+    const existing = await dexieDb.templates.count();
+    if (existing > 0) return;
+    const defaults: TrainingTemplate[] = [
+      { id: 'tp-fat-loss', name: '减脂计划', nameEn: 'Fat Loss', description: '高代谢循环训练，侧重有氧+轻重量多次数', descriptionEn: 'High-metabolic circuit training, cardio + light weight high reps', category: 'fat-loss', workouts: [
+        { exercise: 'Burpee', sets: 4, reps: 15, weight: 0 }, { exercise: 'Kettlebell Swing', sets: 4, reps: 20, weight: 16 },
+        { exercise: 'Jump Squat', sets: 3, reps: 15, weight: 0 }, { exercise: 'Mountain Climber', sets: 3, reps: 30, weight: 0 },
+        { exercise: 'Dumbbell Thruster', sets: 3, reps: 12, weight: 8 }, { exercise: 'Plank', sets: 3, reps: 45, weight: 0 },
+      ]},
+      { id: 'tp-muscle', name: '增肌计划', nameEn: 'Muscle Gain', description: '经典推拉腿分化，大重量低次数渐进超负荷', descriptionEn: 'Classic PPL split, heavy weight low reps progressive overload', category: 'muscle-gain', workouts: [
+        { exercise: 'Bench Press', sets: 4, reps: 8, weight: 60 }, { exercise: 'Squat', sets: 4, reps: 8, weight: 80 },
+        { exercise: 'Deadlift', sets: 3, reps: 6, weight: 100 }, { exercise: 'Overhead Press', sets: 3, reps: 10, weight: 40 },
+        { exercise: 'Barbell Row', sets: 4, reps: 8, weight: 60 }, { exercise: 'Pull Up', sets: 3, reps: 8, weight: 0 },
+      ]},
+      { id: 'tp-posture', name: '体态矫正', nameEn: 'Posture Fix', description: '针对含胸/头前引/骨盆问题的矫正训练', descriptionEn: 'Corrective exercises for rounded shoulders / forward head / pelvic tilt', category: 'posture-fix', workouts: [
+        { exercise: 'Wall Angel', sets: 3, reps: 10, weight: 0 }, { exercise: 'Band Face Pull', sets: 3, reps: 15, weight: 0 },
+        { exercise: 'Chin Tuck', sets: 3, reps: 12, weight: 0 }, { exercise: 'Glute Bridge', sets: 3, reps: 15, weight: 0 },
+        { exercise: 'Thoracic Extension', sets: 3, reps: 10, weight: 0 }, { exercise: 'Dead Bug', sets: 3, reps: 10, weight: 0 },
+      ]},
+      { id: 'tp-general', name: '综合体能', nameEn: 'General Fitness', description: '基础全身训练，适合新手建立运动习惯', descriptionEn: 'Full-body foundation, ideal for beginners', category: 'general', workouts: [
+        { exercise: 'Goblet Squat', sets: 3, reps: 12, weight: 16 }, { exercise: 'Push Up', sets: 3, reps: 12, weight: 0 },
+        { exercise: 'Dumbbell Row', sets: 3, reps: 12, weight: 12 }, { exercise: 'Lunge', sets: 3, reps: 10, weight: 0 },
+        { exercise: 'Plank', sets: 3, reps: 30, weight: 0 }, { exercise: 'Farmers Walk', sets: 2, reps: 1, weight: 20 },
+      ]},
+    ];
+    for (const t of defaults) await dexieDb.templates.put({ id: t.id, data: t });
+  }
+
+  // --- Member Goals ---
+
+  async saveGoal(goal: MemberGoal): Promise<void> {
+    await dexieDb.goals.put({ id: goal.id, memberId: goal.memberId, data: goal });
+  }
+
+  async getMemberGoals(memberId: string): Promise<MemberGoal[]> {
+    return (await dexieDb.goals.where('memberId').equals(memberId).toArray()).map(r => r.data);
+  }
+
+  async deleteGoal(id: string): Promise<void> {
+    await dexieDb.goals.delete(id);
   }
 }
 

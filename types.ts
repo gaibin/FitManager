@@ -79,7 +79,50 @@ export interface Member {
 
 export interface StudioConfig {
   name: string;
-  logo?: string;
+  logo?: string; // base64 or URL
+  coachName?: string;
+  accentColor?: string; // hex color
+  phone?: string;
+  email?: string;
+}
+
+// 健康指数
+export interface WellnessScore {
+  posture: number;       // 体态评分 0-100
+  consistency: number;   // 出勤一致性 0-100
+  progress: number;      // 训练进步 0-100
+  total: number;         // 综合分 0-100
+}
+
+// 评估趋势
+export interface AssessmentTrend {
+  date: string;
+  score: number;
+  confidence: number;
+}
+
+// 训练模板
+export interface TrainingTemplate {
+  id: string;
+  name: string;
+  nameEn: string;
+  description: string;
+  descriptionEn: string;
+  category: 'fat-loss' | 'muscle-gain' | 'posture-fix' | 'general';
+  workouts: { exercise: string; sets: number; reps: number; weight: number }[];
+}
+
+// 会员课程目标
+export interface MemberGoal {
+  id: string;
+  memberId: string;
+  type: 'posture' | 'strength' | 'weight' | 'attendance';
+  target: number;
+  current: number;
+  unit: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
 }
 
 export interface TranslationDictionary {

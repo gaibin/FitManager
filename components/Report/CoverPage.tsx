@@ -6,7 +6,7 @@ import React from 'react';
 import { Member, Language } from '../../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface CoverPageProps { member: Member; lang: Language; studioName: string; }
+interface CoverPageProps { member: Member; lang: Language; studioName: string; studioLogo?: string; coachName?: string; accentColor?: string; }
 
 const STYLE = {
   page: { width: 794, height: 1123, backgroundColor: '#ffffff', color: '#1D1D1F', padding: '60px 50px', fontFamily: 'Inter, system-ui, -apple-system, sans-serif', boxSizing: 'border-box' as const, display: 'flex', flexDirection: 'column' as const },
@@ -26,7 +26,7 @@ const STYLE = {
   footerText: { fontSize: 11, color: '#8E8E93' },
 };
 
-const CoverPage: React.FC<CoverPageProps> = ({ member, lang, studioName }) => {
+const CoverPage: React.FC<CoverPageProps> = ({ member, lang, studioName, studioLogo, coachName, accentColor = '#007AFF' }) => {
   const monthlyCount = member.workouts.filter(w => w.date.startsWith(new Date().toISOString().slice(0, 7))).length || 0;
   const maxWeight = member.workouts.reduce((max, w) => w.weight > max ? w.weight : max, 0) || 0;
   const totalVolume = member.workouts.reduce((sum, w) => sum + (w.weight * w.sets * w.reps), 0) || 0;
@@ -39,10 +39,20 @@ const CoverPage: React.FC<CoverPageProps> = ({ member, lang, studioName }) => {
     trendData.push({ month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, volume: Math.round(member.workouts.filter(w => w.date.startsWith(monthStr)).reduce((s, w) => s + w.weight * w.sets * w.reps, 0) / 100) / 10 });
   }
 
+  const a = { color: accentColor };
   return (
     <div style={STYLE.page}>
-      <div style={STYLE.header}><span style={STYLE.headerText}>{studioName}</span></div>
-      <div style={{ marginBottom: 40 }}><h1 style={STYLE.title}>{lang === 'zh' ? '会员训练报告' : 'Member Training Report'}</h1><div style={STYLE.accent} /></div>
+      <div style={{ ...STYLE.header, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {studioLogo && <img src={studioLogo} style={{ width: 32, height: 32, borderRadius: 8 }} alt="Logo" />}
+          <div>
+            <span style={{ ...STYLE.headerText, fontWeight: 700, color: accentColor }}>{studioName}</span>
+            {coachName && <span style={{ fontSize: 11, color: '#8E8E93', marginLeft: 8, fontWeight: 400 }}>{lang === 'zh' ? `教练: ${coachName}` : `Coach: ${coachName}`}</span>}
+          </div>
+        </div>
+        <span style={{ fontSize: 11, color: '#C7C7CC' }}>{lang === 'zh' ? '机密' : 'CONFIDENTIAL'}</span>
+      </div>
+      <div style={{ marginBottom: 40 }}><h1 style={{ ...STYLE.title, color: accentColor }}>{lang === 'zh' ? '会员训练报告' : 'Member Training Report'}</h1><div style={{ ...STYLE.accent, background: `linear-gradient(90deg, ${accentColor}, ${accentColor}88)` }} /></div>
       <div style={STYLE.infoCard}>
         <div style={{ display: 'flex', gap: 60 }}>
           <div><span style={STYLE.infoLabel}>{lang === 'zh' ? '姓名' : 'Name'}</span><p style={STYLE.infoValue}>{member.name}</p></div>

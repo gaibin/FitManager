@@ -138,6 +138,7 @@ const AppContent: React.FC<AppContentProps> = ({
                 lang={lang} memberId={selectedMember.id} memberName={selectedMember.name}
                 heightCm={selectedMember.heightCm} gender={selectedMember.gender}
                 onSaveAssessment={handleSaveAssessment}
+                previousAssessment={selectedMember.assessments?.[1]}
               />
             ) : (
               <div className="flex h-full items-center justify-center">
@@ -172,7 +173,7 @@ const AppContent: React.FC<AppContentProps> = ({
                 </div>
               </div>
             }>
-              <Settings lang={lang} />
+              <Settings lang={lang} studioName={studioName} onStudioUpdate={(name, _, __) => setStudioName(name)} />
             </Suspense>
           </div>
         </main>

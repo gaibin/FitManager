@@ -9,8 +9,11 @@ import HistoryChart from './HistoryChart';
 import WorkoutHistory from './WorkoutHistory';
 import AIAdvisor from './AIAdvisor';
 import ImageUpload from './ImageUpload';
+import WellnessScore from './WellnessScore';
+import AssessmentTrends from './AssessmentTrends';
+import PostureRadar from './PostureRadar';
 import { exportMemberHistory } from '../services/excelService';
-import { Member, Language, Workout } from '../types';
+import { Member, Language, Workout, WellnessScore as WellnessScoreType } from '../types';
 import { TRANSLATIONS } from '../constants';
 
 interface DashboardProps {
@@ -60,6 +63,23 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // Posture score
   const postureScore = member.assessments?.[0]?.report?.score ?? null;
+
+  // Wellness score calculation
+  const attendanceRate = Math.min(100, Math.round((monthlyCount / 12) * 100)); // 12 sessions/month = 100%
+  const assessmentCount = member.assessments?.length ?? 0;
+  const postureRaw = postureScore ?? 0;
+  const progressScore = Math.min(100, Math.round(
+    (member.workouts.length > 0 ? maxWeight / (member.workouts.length > 5 ? 100 : 50) : 0) * 100
+  ));
+  const wellnessScore: WellnessScoreType = {
+    posture: postureRaw,
+    consistency: attendanceRate,
+    progress: Math.min(100, progressScore),
+    total: Math.round(postureRaw * 0.4 + attendanceRate * 0.3 + Math.min(100, progressScore) * 0.3),
+  };
+
+  // Latest assessment issues for radar
+  const latestIssues = member.assessments?.[0]?.report?.issues ?? [];
 
   const handleExport = () => { exportMemberHistory(member); };
 
@@ -126,6 +146,28 @@ const Dashboard: React.FC<DashboardProps> = ({
           <p className="text-[10px] text-gray-400 mt-0.5">/ 100</p>
         </div>
       </div>
+
+      {/* Wellness + Trends + Radar Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <WellnessScore score={wellnessScore} lang={lang} />
+        <div className="lg:col-span-2">
+          {member.assessments && member.assessments.length > 0 ? (
+            <AssessmentTrends assessments={member.assessments} lang={lang} />
+          ) : (
+            <div className="bg-white rounded-2xl p-6 flex items-center justify-center h-full" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div className="text-center">
+                <svg className="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                <p className="text-xs text-gray-400">{lang === 'zh' ? '完成首次体态评估后开启趋势追踪' : 'Assessment trends appear after first assessment'}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Begin radar */}
+      {latestIssues.length > 0 && (
+        <PostureRadar issues={latestIssues} lang={lang} />
+      )}
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
