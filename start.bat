@@ -18,6 +18,7 @@ echo.
 echo ============================================
 echo   Both servers starting...
 echo   Close the two windows to stop.
-echo   OR run start-frontend.bat / start-backend.bat
 echo ============================================
-pause
+echo   This window will close in 3 seconds...
+timeout /t 3 /nobreak >nul
+exit
