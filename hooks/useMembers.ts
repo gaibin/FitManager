@@ -15,21 +15,28 @@ interface UseMembersOptions {
 export function useMembers({ db, isAdmin, userId, onMemberDeleted }: UseMembersOptions) {
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        let data: Member[];
-        if (isAdmin) { data = await db.getMembers(); }
-        else if (userId) { const all = await db.getMembers(); const m = all.find(x => x.id === userId); data = m ? [m] : []; }
-        else { data = []; }
-        setMembers(data);
-        if (data.length > 0) setSelectedMemberId(data[0].id);
-      } catch (err) { console.error('Failed to load members', err); }
-    };
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, userId]);
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError('');
+    try {
+      let data: Member[];
+      if (isAdmin) { data = await db.getMembers(); }
+      else if (userId) { const all = await db.getMembers(); const m = all.find(x => x.id === userId); data = m ? [m] : []; }
+      else { data = []; }
+      setMembers(data);
+      setSelectedMemberId(current => data.some(member => member.id === current) ? current : data[0]?.id || null);
+    } catch (err) {
+      console.error('Failed to load members', err);
+      setLoadError(err instanceof Error ? err.message : '会员数据加载失败');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [db, isAdmin, userId]);
+
+  useEffect(() => { void reload(); }, [reload]);
 
   const handleAddMember = useCallback(async (name: string) => {
     const newMember = await db.addMember(name);
@@ -59,6 +66,9 @@ export function useMembers({ db, isAdmin, userId, onMemberDeleted }: UseMembersO
     selectedMemberId,
     setSelectedMemberId,
     selectedMember,
+    loadError,
+    isLoading,
+    reload,
     handleAddMember,
     handleDeleteMember,
   };

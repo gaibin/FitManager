@@ -35,7 +35,7 @@ class CloudDatabase {
 
     if (memberError) {
       console.error('[Supabase] getMembers members error', memberError);
-      return [];
+      throw new Error(`会员数据暂时无法读取：${memberError.message}`);
     }
 
     const { data: workoutRows, error: workoutError } = await supabase
@@ -45,7 +45,6 @@ class CloudDatabase {
 
     if (workoutError) {
       console.error('[Supabase] getMembers workouts error', workoutError);
-      return [];
     }
 
     const { data: assessmentRows, error: assessmentError } = await supabase
@@ -129,7 +128,8 @@ class CloudDatabase {
 
     if (error || !data) {
       console.error('[Supabase] addMember error', error);
-      throw new Error('Failed to add member');
+      const detail = error?.message || '数据库没有返回新会员';
+      throw new Error(`新增会员失败：${detail}`);
     }
 
     const member: Member = {

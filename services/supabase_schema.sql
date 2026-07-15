@@ -91,3 +91,13 @@ drop policy if exists "mvp_users_browser_login" on public.users;
 create policy "mvp_users_browser_login" on public.users
   for select to anon, authenticated using (true);
 
+-- RLS policies decide which rows are accessible; table grants are still
+-- required for PostgREST browser clients to perform the operations.
+grant select, insert, update, delete on table
+  public.members,
+  public.workouts,
+  public.posture_assessments,
+  public.app_configs
+to anon, authenticated;
+
+grant select on table public.users to anon, authenticated;

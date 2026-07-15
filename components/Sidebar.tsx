@@ -6,8 +6,11 @@ interface SidebarProps {
   members: Member[];
   selectedMemberId: string | null;
   onSelectMember: (id: string | null) => void;
-  onAddMember?: (name: string) => void;
+  onAddMember?: (name: string) => Promise<void>;
   onDeleteMember?: (id: string) => void;
+  memberLoadError?: string;
+  memberLoading?: boolean;
+  onRetryMembers?: () => void;
   lang: Language;
   user?: User | null;
   onLogout?: () => void;
@@ -24,18 +27,20 @@ const NAV_ITEMS = [
 
 const Sidebar: React.FC<SidebarProps> = ({
   members, selectedMemberId, onSelectMember, onAddMember, onDeleteMember,
+  memberLoadError, memberLoading, onRetryMembers,
   lang, user, onLogout, currentPath = '/', onNavigate,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filtered = search.trim()
     ? members.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
     : members;
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newName.trim();
     if (!trimmed) return;
@@ -44,8 +49,18 @@ const Sidebar: React.FC<SidebarProps> = ({
       setTimeout(() => setError(''), 3000);
       return;
     }
-    onAddMember?.(trimmed);
-    setNewName(''); setError(''); setIsAdding(false);
+    if (!onAddMember) return;
+    setIsSubmitting(true);
+    setError('');
+    try {
+      await onAddMember(trimmed);
+      setNewName('');
+      setIsAdding(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (lang === 'zh' ? '新增会员失败，请稍后重试' : 'Failed to add member. Please try again.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
@@ -91,19 +106,29 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {isAdding && (
         <form onSubmit={handleAddSubmit} className="px-4 pt-2 pb-1">
-          <input autoFocus type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder={TRANSLATIONS.newMemberName[lang]}
+          <input autoFocus type="text" name="new-member-display-name" autoComplete="off" value={newName} onChange={e => setNewName(e.target.value)} placeholder={TRANSLATIONS.newMemberName[lang]}
             className="w-full bg-black/[0.03] border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/10 transition-all text-gray-800 mb-1.5" />
           {error && <p className="text-[#FF3B30] text-[11px] mb-1.5 font-medium">{error}</p>}
-          <button type="submit" className="w-full bg-[#007AFF] hover:bg-[#0066d6] text-white text-xs font-semibold py-2 rounded-xl transition-colors scale-press">
-            {TRANSLATIONS.addMember[lang]}
+          <button type="submit" disabled={isSubmitting} className="w-full bg-[#007AFF] hover:bg-[#0066d6] disabled:opacity-60 text-white text-xs font-semibold py-2 rounded-xl transition-colors scale-press">
+            {isSubmitting ? (lang === 'zh' ? '正在添加…' : 'Adding…') : TRANSLATIONS.addMember[lang]}
           </button>
         </form>
       )}
 
+      {memberLoadError && (
+        <div className="mx-4 mt-2 rounded-xl border border-[#FF3B30]/15 bg-[#FF3B30]/5 px-3 py-2">
+          <p className="text-[11px] leading-relaxed text-[#C9342C]">{lang === 'zh' ? '云端会员数据暂不可用' : 'Cloud member data is unavailable'}</p>
+          <button type="button" onClick={onRetryMembers} className="mt-1 text-[11px] font-semibold text-[#007AFF]">
+            {lang === 'zh' ? '重新连接' : 'Retry'}
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-0.5">
+        {memberLoading && <p className="px-3 py-2 text-[11px] text-gray-400">{lang === 'zh' ? '正在加载会员…' : 'Loading members…'}</p>}
         <div className="relative mb-2">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" strokeWidth="2"/><path strokeLinecap="round" d="M21 21l-4.35-4.35" strokeWidth="2"/></svg>
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+          <input type="search" name="member-list-filter" autoComplete="off" value={search} onChange={e => setSearch(e.target.value)}
             placeholder={lang === 'zh' ? '\u641c\u7d22\u4f1a\u5458...' : 'Search members...'}
             className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-8 pr-3 py-2 text-xs text-gray-800 outline-none focus:border-[#007AFF]/30 transition-all" />
         </div>

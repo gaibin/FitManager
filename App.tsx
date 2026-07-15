@@ -55,6 +55,9 @@ interface AppContentProps {
   setFilterMonth: React.Dispatch<React.SetStateAction<string>>;
   editingSession: { date: string; workouts: Workout[] } | null;
   setEditingSession: React.Dispatch<React.SetStateAction<{ date: string; workouts: Workout[] } | null>>;
+  memberLoadError: string;
+  memberLoading: boolean;
+  reloadMembers: () => Promise<void>;
 }
 
 const AppContent: React.FC<AppContentProps> = ({
@@ -65,6 +68,7 @@ const AppContent: React.FC<AppContentProps> = ({
   handleSaveSession, handleUpdateWorkout, handleDeleteWorkout,
   handleUploadPhoto, handleSaveAssessment, filterMonth, setFilterMonth,
   editingSession, setEditingSession,
+  memberLoadError, memberLoading, reloadMembers,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,6 +82,9 @@ const AppContent: React.FC<AppContentProps> = ({
         onSelectMember={setSelectedMemberId}
         onAddMember={isAdmin ? handleAddMember : undefined}
         onDeleteMember={isAdmin ? handleDeleteMember : undefined}
+        memberLoadError={memberLoadError}
+        memberLoading={memberLoading}
+        onRetryMembers={() => { void reloadMembers(); }}
         lang={lang}
         user={user}
         onLogout={handleLogout}
@@ -253,6 +260,9 @@ const App: React.FC = () => {
         filterMonth={filterMonth} setFilterMonth={setFilterMonth}
         editingSession={workouts.editingSession}
         setEditingSession={workouts.setEditingSession}
+        memberLoadError={members.loadError}
+        memberLoading={members.isLoading}
+        reloadMembers={members.reload}
       />
     </HashRouter>
   );
