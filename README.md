@@ -97,7 +97,7 @@ neonfit-studio-manager/
 │   │                             #   - matchCorrectionPlan() 按关键词匹配
 │   ├── pdfGenerator.ts           # PDF 生成：html2canvas 截图 → jsPDF 拼接 → 下载
 │   ├── excelService.ts           # 训练记录导出为 .xlsx 文件
-│   ├── geminiService.ts          # Kimi API 调用（旧版，供 AIAdvisor 使用）
+│   ├── aiCoachService.ts         # 服务端 AI 教练接口（仅发送结构化数据）
 │   ├── supabaseClient.ts         # Supabase 客户端初始化
 │   ├── seedData.ts               # 种子数据：20个会员 + 渐进式训练记录
 │   └── createUsersTable.sql      # Supabase 建表 SQL
@@ -146,7 +146,8 @@ npm run dev           # → http://localhost:3000
 | `VITE_DB_MODE` | 数据模式: `mock`(演示) / `local`(本地) / `cloud`(云端) | `mock` |
 | `VITE_POSTURE_API_URL` | Flask 后端地址 | `http://localhost:5000` |
 | `VITE_POSTURE_V2_ENABLED` | 教练试点功能开关 | `true` |
-| `VITE_KIMI_API_KEY` | Kimi API Key（AI 教练用） | — |
+| `DEEPSEEK_API_KEY` | DeepSeek 服务端密钥（仅配置在后端/Vercel） | — |
+| `DEEPSEEK_MODEL` | AI 教练模型 | `deepseek-v4-flash` |
 
 **数据模式说明：**
 

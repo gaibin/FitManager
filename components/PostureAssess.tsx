@@ -18,6 +18,7 @@ import { compressImage, validateImage } from '../services/imageUtils';
 import Posture3DViewer from './Posture3DViewer';
 import PosturePhotoOverlay from './PosturePhotoOverlay';
 import PostureCameraCapture from './PostureCameraCapture';
+import PostureAIInsight from './PostureAIInsight';
 
 interface PostureAssessProps {
   lang: Language;
@@ -244,7 +245,7 @@ const TrainingPrescriptionPanel: React.FC<TrainingPrescriptionPanelProps> = ({
 };
 
 const PostureAssess: React.FC<PostureAssessProps> = ({
-  lang, memberId, memberName, heightCm, onSaveAssessment, previousAssessment,
+  lang, memberId, memberName, heightCm, gender, onSaveAssessment, previousAssessment,
 }) => {
   const [images, setImages] = useState<Record<PostureView, string | null>>({ front: null, side: null, back: null });
   const [imageSource, setImageSource] = useState<Record<PostureView, 'guided' | 'upload' | null>>({ front: null, side: null, back: null });
@@ -598,6 +599,15 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
               </div>
             </section>
           </div>
+
+          <PostureAIInsight
+            data={data}
+            memberName={memberName}
+            heightCm={height}
+            gender={gender}
+            previousAssessment={previousAssessment}
+            lang={lang}
+          />
 
           <TrainingPrescriptionPanel
             data={data}

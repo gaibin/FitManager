@@ -1,38 +1,87 @@
-import React, { useState } from 'react';
-import { Member, Language } from '../types';
-import { getTrainingAdvice } from '../services/geminiService';
+import React, { useCallback, useEffect, useState } from 'react';
+import type { Language, Member } from '../types';
+import { getMemberCoachBrief, type MemberCoachBrief } from '../services/aiCoachService';
 
 interface AIAdvisorProps { member: Member; lang: Language; }
 
 const AIAdvisor: React.FC<AIAdvisorProps> = ({ member, lang }) => {
   const [query, setQuery] = useState('');
-  const [advice, setAdvice] = useState('');
+  const [brief, setBrief] = useState<MemberCoachBrief | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const zh = lang === 'zh';
 
-  const handleAsk = async () => {
-    setLoading(true); setAdvice(''); const result = await getTrainingAdvice(member, query, lang); setAdvice(result); setLoading(false);
+  const generate = useCallback(async (question?: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      setBrief(await getMemberCoachBrief(member, lang, question));
+    } catch (err: any) {
+      setError(err?.message || (zh ? 'AI 教练简报生成失败' : 'Unable to generate coach brief'));
+    } finally {
+      setLoading(false);
+    }
+  }, [member, lang, zh]);
+
+  useEffect(() => { void generate(); }, [member.id, generate]);
+
+  const ask = () => {
+    if (!query.trim()) return;
+    void generate(query);
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 relative overflow-hidden" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-      <div className="absolute top-0 right-0 w-28 h-28 rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #007AFF, transparent 70%)' }} />
-      <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2 relative z-10">
-        <span className="text-base">&#9889;</span> AI Coach
-      </h3>
-      <div className="space-y-3 relative z-10">
-        <textarea value={query} onChange={e => setQuery(e.target.value)}
-          placeholder={lang === 'zh' ? '针对该会员提问...' : 'Ask about this member...'}
-          className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm text-gray-800 placeholder-gray-300 outline-none focus:border-[#007AFF]/30 focus:ring-2 focus:ring-[#007AFF]/10 transition-all h-20 resize-none" />
-        <button onClick={handleAsk} disabled={loading}
-          className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all scale-press disabled:opacity-60"
-          style={{ background: loading ? '#8E8E93' : 'linear-gradient(135deg, #007AFF, #5856D6)' }}>
-          {loading ? (
-            <span className="flex items-center justify-center gap-2"><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Thinking...</span>
-          ) : (lang === 'zh' ? '获取建议' : 'Get Advice')}
+    <div className="relative overflow-hidden rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#007AFF] via-[#5856D6] to-[#AF52DE]" />
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#5856D6]/10 text-sm text-[#5856D6]">✦</span>
+            <h3 className="text-sm font-extrabold text-gray-900">{zh ? 'AI 教练简报' : 'AI Coach Brief'}</h3>
+          </div>
+          <p className="mt-2 text-[10px] leading-4 text-gray-400">
+            {zh ? '读取训练记录与算法测量，不读取照片' : 'Uses training records and algorithmic measurements, not photos'}
+          </p>
+        </div>
+        <button onClick={() => void generate()} disabled={loading} className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-[10px] font-bold text-gray-500 disabled:opacity-40">
+          {zh ? '刷新' : 'Refresh'}
         </button>
-        {advice && (
-          <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{advice}</div>
+      </div>
+
+      <div className="relative z-10 mt-4 space-y-3">
+        {loading && !brief && <div className="animate-pulse rounded-xl bg-gray-50 p-5 text-center text-xs text-gray-400">{zh ? '正在生成今日简报…' : 'Preparing today’s brief…'}</div>}
+        {error && <div className="rounded-xl bg-[#FF3B30]/5 p-3 text-xs text-[#C93400]">{error}</div>}
+        {brief && (
+          <>
+            <div className="rounded-xl bg-gradient-to-br from-[#F4F2FF] to-[#F8FAFF] p-4">
+              <p className="text-xs font-extrabold text-[#403A77]">{brief.headline}</p>
+              <p className="mt-2 text-[11px] leading-5 text-gray-600">{brief.summary}</p>
+            </div>
+            {brief.todayFocus.length > 0 && (
+              <div>
+                <p className="text-[9px] font-black tracking-widest text-gray-400">{zh ? '今日重点' : 'TODAY'}</p>
+                <div className="mt-2 space-y-1.5">
+                  {brief.todayFocus.map((item, index) => <p key={index} className="flex gap-2 text-[11px] leading-5 text-gray-700"><span className="font-black text-[#007AFF]">{index + 1}</span>{item}</p>)}
+                </div>
+              </div>
+            )}
+            {(brief.loadNote || brief.postureNote) && (
+              <div className="grid gap-2">
+                {brief.loadNote && <div className="rounded-lg bg-gray-50 p-3 text-[10px] leading-5 text-gray-600"><b className="text-gray-800">{zh ? '负荷：' : 'Load: '}</b>{brief.loadNote}</div>}
+                {brief.postureNote && <div className="rounded-lg bg-[#34C759]/5 p-3 text-[10px] leading-5 text-gray-600"><b className="text-[#248A3D]">{zh ? '体态：' : 'Posture: '}</b>{brief.postureNote}</div>}
+              </div>
+            )}
+            {brief.answer && <div className="rounded-xl border border-[#5856D6]/10 p-3 text-[11px] leading-5 text-gray-700"><b className="text-[#5856D6]">{zh ? '回答：' : 'Answer: '}</b>{brief.answer}</div>}
+          </>
         )}
+
+        <textarea value={query} onChange={event => setQuery(event.target.value)}
+          placeholder={zh ? '询问该会员的训练安排…' : 'Ask about this member…'}
+          className="h-16 w-full resize-none rounded-xl border border-gray-100 bg-gray-50 p-3 text-xs text-gray-800 outline-none focus:border-[#5856D6]/30" />
+        <button onClick={ask} disabled={loading || !query.trim()}
+          className="w-full rounded-xl bg-gradient-to-r from-[#007AFF] to-[#5856D6] py-2.5 text-xs font-bold text-white disabled:opacity-40">
+          {loading ? (zh ? '生成中…' : 'Generating…') : (zh ? '基于会员数据回答' : 'Answer from member data')}
+        </button>
       </div>
     </div>
   );

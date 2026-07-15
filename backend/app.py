@@ -16,6 +16,11 @@ import tempfile
 from flask import Flask, jsonify, request
 
 try:
+    from backend.ai_coach import AICoachError, generate_member_coach, generate_posture_coach
+except ImportError:  # Support running this file directly.
+    from ai_coach import AICoachError, generate_member_coach, generate_posture_coach
+
+try:
     from flask_cors import CORS
 except Exception:
     CORS = None
@@ -326,6 +331,44 @@ def food_config():
             "note": "当前为基础版热量估算，混合菜和复杂摆盘误差较大。",
         }
     )
+
+
+def _ai_request_payload() -> dict:
+    body = request.get_json(force=True, silent=True)
+    if not isinstance(body, dict):
+        raise AICoachError("请求数据格式无效", 400)
+    if len(request.data or b"") > 250_000:
+        raise AICoachError("AI 请求数据过大", 413)
+    return body
+
+
+@app.route("/api/ai/posture-coach", methods=["POST"])
+def posture_ai_coach():
+    try:
+        body = _ai_request_payload()
+        measurements = body.get("measurements")
+        if not isinstance(measurements, list) or not measurements:
+            return jsonify({"success": False, "error": "缺少有效的体态测量数据"}), 400
+        return jsonify({"success": True, "data": generate_posture_coach(body)})
+    except AICoachError as exc:
+        return jsonify({"success": False, "error": str(exc)}), exc.status_code
+    except Exception as exc:
+        app.logger.exception("posture AI coach failed: %s", exc)
+        return jsonify({"success": False, "error": "AI 教练解读生成失败"}), 500
+
+
+@app.route("/api/ai/member-coach", methods=["POST"])
+def member_ai_coach():
+    try:
+        body = _ai_request_payload()
+        if not isinstance(body.get("member"), dict):
+            return jsonify({"success": False, "error": "缺少会员数据"}), 400
+        return jsonify({"success": True, "data": generate_member_coach(body)})
+    except AICoachError as exc:
+        return jsonify({"success": False, "error": str(exc)}), exc.status_code
+    except Exception as exc:
+        app.logger.exception("member AI coach failed: %s", exc)
+        return jsonify({"success": False, "error": "AI 教练简报生成失败"}), 500
 
 
 @app.route("/api/health", methods=["GET"])
