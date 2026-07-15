@@ -47,6 +47,16 @@ class AICoachTests(unittest.TestCase):
         response = self.client.post("/api/ai/member-coach", json={})
         self.assertEqual(response.status_code, 400)
 
+    def test_unsolicited_answer_is_not_shown_without_question(self):
+        generated = {
+            "headline": "今日简报", "summary": "摘要", "todayFocus": [],
+            "loadNote": "", "postureNote": "", "nextActions": [],
+            "answer": "模型擅自生成的回答",
+        }
+        with patch.object(ai_coach, "_call_deepseek", return_value=(generated, "test-model")):
+            result = ai_coach.generate_member_coach({"member": {"name": "测试"}})
+        self.assertEqual(result["answer"], "")
+
 
 if __name__ == "__main__":
     unittest.main()
