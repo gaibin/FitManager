@@ -245,7 +245,11 @@ def _line_angle_to_horizontal(a: Keypoint, b: Keypoint) -> float:
 def _line_angle_to_vertical(a: Keypoint, b: Keypoint) -> float:
     dx = b.x - a.x
     dy = b.y - a.y
-    return abs(math.degrees(math.atan2(dx, dy)))
+    raw = abs(math.degrees(math.atan2(dx, dy)))
+    # Image y grows downwards, so a perfectly vertical line may be encoded as
+    # either 0° or 180° depending on point order.  Report the deviation from
+    # the vertical axis rather than the directed polar angle.
+    return min(raw, abs(180.0 - raw))
 
 
 def _mean_visibility(points: Iterable[Keypoint]) -> float:
@@ -946,12 +950,16 @@ class KeypointExtractor:
     @staticmethod
     def _make_augmentations(image_bgr: np.ndarray, n: int = 3) -> List[np.ndarray]:
         """Create n light augmentations: original + brightness shifts."""
+        if n <= 1:
+            return [image_bgr]
         images = [image_bgr]
-        h, w = image_bgr.shape[:2]
-        for i in range(1, n):
-            beta = (i - n // 2) * 10  # slight brightness shift
-            aug = cv2.convertScaleAbs(image_bgr, alpha=1.0, beta=beta)
-            images.append(aug)
+        # The previous implementation added the original twice for n=3. Use
+        # symmetric, non-zero shifts so the median fusion is meaningful.
+        shifts = np.linspace(-10, 10, n).astype(int).tolist()
+        for beta in shifts:
+            if beta == 0:
+                continue
+            images.append(cv2.convertScaleAbs(image_bgr, alpha=1.0, beta=beta))
         return images
 
     def _infer_pose(self, image_bgr: np.ndarray):

@@ -43,16 +43,18 @@ const WellnessScore: React.FC<WellnessScoreProps> = ({ score, lang }) => {
             <div key={item.label} className="flex items-center gap-2">
               <span className="text-[10px] font-semibold text-gray-500 w-10 shrink-0">{item.label}</span>
               <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.v}%`, backgroundColor: item.c }} />
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.v ?? 0}%`, backgroundColor: item.c }} />
               </div>
-              <span className="text-[10px] font-bold text-gray-600 w-7 text-right">{item.v}</span>
+              <span className="text-[10px] font-bold text-gray-600 w-7 text-right">{item.v ?? '—'}</span>
             </div>
           ))}
         </div>
       </div>
 
       <p className="text-[10px] text-gray-400 text-center">
-        {lang === 'zh' ? '综合评分 = 体态×40% + 出勤×30% + 进步×30%' : 'Total = Posture×40% + Consistency×30% + Progress×30%'}
+        {score.posture == null
+          ? (lang === 'zh' ? 'V2 趋势指数不计入健康分；本次按出勤与训练进步计算' : 'V2 trend is excluded; total uses consistency and progress')
+          : (lang === 'zh' ? '综合评分 = 体态×40% + 出勤×30% + 进步×30%' : 'Total = Posture×40% + Consistency×30% + Progress×30%')}
       </p>
     </div>
   );

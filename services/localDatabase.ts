@@ -24,6 +24,10 @@ interface WorkoutRow {
   weight: number;
   sets: number;
   reps: number;
+  durationSeconds?: number;
+  rpe?: number;
+  completed?: boolean;
+  note?: string;
 }
 
 interface AssessmentRow {
@@ -89,6 +93,10 @@ class LocalDatabase {
         weight: w.weight,
         sets: w.sets,
         reps: w.reps,
+        durationSeconds: w.durationSeconds,
+        rpe: w.rpe,
+        completed: w.completed,
+        note: w.note,
       });
     }
 
@@ -177,6 +185,10 @@ class LocalDatabase {
         weight: w.weight,
         sets: w.sets,
         reps: w.reps,
+        durationSeconds: w.durationSeconds,
+        rpe: w.rpe,
+        completed: w.completed,
+        note: w.note,
       };
       await dexieDb.workouts.put(row);
       newWorkouts.push({ id, ...w });
@@ -191,6 +203,10 @@ class LocalDatabase {
       weight: workout.weight,
       sets: workout.sets,
       reps: workout.reps,
+      durationSeconds: workout.durationSeconds,
+      rpe: workout.rpe,
+      completed: workout.completed,
+      note: workout.note,
     });
   }
 

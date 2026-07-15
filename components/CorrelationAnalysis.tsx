@@ -1,73 +1,71 @@
-/**
- * 训练-体态关联分析 — 分析哪些动作与体态改善相关
- */
+/** Descriptive training log shown alongside posture change; no causal claims. */
 
 import React from 'react';
-import { Member, Language } from '../types';
+import type { Language, Member } from '../types';
+import { buildPostureSeries } from '../services/postureSeries';
+import { isWorkoutCompleted } from '../services/workoutAnalytics';
 
-interface CorrelationAnalysisProps { member: Member; lang: Language; }
+interface CorrelationAnalysisProps {
+  member: Member;
+  lang: Language;
+}
 
 const CorrelationAnalysis: React.FC<CorrelationAnalysisProps> = ({ member, lang }) => {
-  const assessments = member.assessments || [];
-  if (assessments.length < 2) {
-    return (
-      <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-        <h3 className="text-sm font-bold text-gray-800 mb-3">{lang === 'zh' ? '训练-体态关联' : 'Training × Posture'}</h3>
-        <p className="text-xs text-gray-400">{lang === 'zh' ? '需要至少 2 次体态评估才能分析' : 'At least 2 assessments needed'}</p>
-      </div>
-    );
-  }
+  const series = buildPostureSeries(member.assessments ?? []);
+  if (series.points.length < 2) return null;
 
-  // Sort assessments by date
-  const sorted = [...assessments].sort((a, b) => a.date.localeCompare(b.date));
-  const improved = sorted[sorted.length - 1].report.score > sorted[0].report.score;
-  const delta = (sorted[sorted.length - 1].report.score - sorted[0].report.score).toFixed(0);
-
-  // Analyze exercises between assessments
-  const exerciseStats: Record<string, { count: number; volume: number; sets: number }> = {};
-  for (let i = 1; i < sorted.length; i++) {
-    const periodWorkouts = member.workouts.filter(
-      w => w.date >= sorted[i - 1].date && w.date <= sorted[i].date
-    );
-    periodWorkouts.forEach(w => {
-      if (!exerciseStats[w.exercise]) exerciseStats[w.exercise] = { count: 0, volume: 0, sets: 0 };
-      exerciseStats[w.exercise].count++;
-      exerciseStats[w.exercise].volume += w.weight * w.sets * w.reps;
-      exerciseStats[w.exercise].sets += w.sets;
-    });
-  }
-
+  const first = series.points[0];
+  const latest = series.points[series.points.length - 1];
+  const delta = latest.value - first.value;
+  const periodWorkouts = member.workouts.filter(
+    workout => workout.date >= first.date && workout.date <= latest.date,
+  );
+  const exerciseStats: Record<string, { dates: Set<string>; volume: number }> = {};
+  periodWorkouts.forEach(workout => {
+    if (!isWorkoutCompleted(workout)) return;
+    const stats = exerciseStats[workout.exercise] ?? { dates: new Set<string>(), volume: 0 };
+    stats.dates.add(workout.date);
+    stats.volume += workout.weight * workout.sets * workout.reps;
+    exerciseStats[workout.exercise] = stats;
+  });
   const topExercises = Object.entries(exerciseStats)
-    .sort((a, b) => b[1].volume - a[1].volume)
+    .sort((a, b) => b[1].dates.size - a[1].dates.size || b[1].volume - a[1].volume)
     .slice(0, 5);
 
   return (
     <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-      <h3 className="text-sm font-bold text-gray-800 mb-2">{lang === 'zh' ? '训练-体态关联' : 'Training × Posture'}</h3>
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`px-3 py-1.5 rounded-xl text-xs font-bold ${improved ? 'bg-[#34C759]/10 text-[#34C759]' : 'bg-[#FF3B30]/10 text-[#FF3B30]'}`}>
-          {improved ? '↑' : '↓'} {delta} pts
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="text-sm font-bold text-gray-800">
+            {lang === 'zh' ? '同期训练记录（描述性）' : 'Concurrent Training Log (descriptive)'}
+          </h3>
+          <p className="text-[10px] text-gray-400 mt-1">
+            {lang === 'zh'
+              ? '仅展示同一时期发生的变化，不代表训练动作导致体态变化。'
+              : 'Changes occurred in the same period; this does not establish causation.'}
+          </p>
         </div>
-        <span className="text-[10px] text-gray-400">{sorted[0].date} → {sorted[sorted.length - 1].date}</span>
+        <div className={`px-3 py-1.5 rounded-xl text-xs font-bold ${delta >= 0 ? 'bg-[#34C759]/10 text-[#34C759]' : 'bg-[#FF3B30]/10 text-[#FF3B30]'}`}>
+          {delta >= 0 ? '+' : ''}{delta.toFixed(0)} {series.version === 'v2' ? (lang === 'zh' ? '趋势点' : 'trend pts') : 'pts'}
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.1em] mb-2">{lang === 'zh' ? '期间主要训练' : 'Key Exercises'}</p>
-        {topExercises.map(([ex, stats], i) => (
-          <div key={ex} className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-gray-300 w-4">{i + 1}</span>
-            <span className="text-xs font-semibold text-gray-800 flex-1 truncate">{ex}</span>
-            <span className="text-[10px] text-gray-400">{stats.count}x · {(stats.volume / 1000).toFixed(1)}k</span>
-          </div>
-        ))}
-      </div>
-
-      {improved && (
-        <p className="text-[10px] text-[#34C759] mt-3 bg-[#34C759]/5 rounded-lg p-2.5 leading-relaxed">
-          {lang === 'zh'
-            ? `体态改善 ${delta} 分。期间主要训练${topExercises[0]?.[0] || 'N/A'}等动作，建议继续保持该方向。`
-            : `Posture improved by ${delta} pts. Continue focusing on ${topExercises[0]?.[0] || 'key exercises'}.`}
-        </p>
+      <p className="text-[10px] text-gray-400 mb-3">{first.date} → {latest.date}</p>
+      {topExercises.length > 0 ? (
+        <div className="space-y-1.5">
+          {topExercises.map(([exercise, stats], index) => (
+            <div key={exercise} className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-gray-300 w-4">{index + 1}</span>
+              <span className="text-xs font-semibold text-gray-800 flex-1 truncate">{exercise}</span>
+              <span className="text-[10px] text-gray-400">
+                {stats.dates.size}{lang === 'zh' ? ' 次' : ' sessions'}
+                {stats.volume > 0 ? ` · ${(stats.volume / 1000).toFixed(1)}k kg` : ''}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400">{lang === 'zh' ? '该区间没有训练记录。' : 'No workouts recorded in this interval.'}</p>
       )}
     </div>
   );

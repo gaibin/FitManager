@@ -36,8 +36,10 @@ export function useWorkouts({ db, selectedMemberId, setMembers }: UseWorkoutsOpt
             for (const ow of originalWorkoutsOnDate) {
               await db.deleteWorkout(selectedMemberId, ow.id);
             }
-            const workoutsToInsert = workoutsData.map(({ date, exercise, weight, sets, reps }) => ({
-              date, exercise, weight, sets, reps
+            const workoutsToInsert = workoutsData.map(({
+              date, exercise, weight, sets, reps, durationSeconds, rpe, completed, note,
+            }) => ({
+              date, exercise, weight, sets, reps, durationSeconds, rpe, completed, note,
             }));
             const newWorkouts = await db.addWorkouts(selectedMemberId, workoutsToInsert);
             setMembers(p => p.map((m: any) => {

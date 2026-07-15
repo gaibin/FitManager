@@ -1,6 +1,6 @@
 # NeonFit Studio Manager
 
-专为健身房教练打造的一体化管理工具。融合了会员训练记录追踪与 **AI 体态评估**（MediaPipe Pose），支持一键导出 **4 页 PDF 训练报告**。
+专为健身房教练打造的一体化管理工具。融合会员训练追踪与 **标志点辅助摄影测量 V2**，支持证据照片、2.5D 骨架和 PDF 报告。V2 用于健身筛查与个人趋势，不是医学诊断或多相机三角测量。
 
 ## 技术栈
 
@@ -51,11 +51,12 @@ neonfit-studio-manager/
 │   ├── MemberReport.tsx          # PDF 报告预览 + 导出（含进度条）
 │   ├── Settings.tsx              # 设置页面（3个 Tab: AI/工作室/数据管理）
 │   │
-│   ├── 📁 Report/                # PDF 4 页组件
-│   │   ├── CoverPage.tsx         # P1 封面：工作室名+会员信息+统计卡片+趋势图
-│   │   ├── PosturePage.tsx       # P2 体态：评分+3张照片+问题列表（严重度颜色）
-│   │   ├── PlanPage.tsx          # P3 矫正：第1-2周/第3-4周 Tab + AI建议
-│   │   └── HistoryPage.tsx       # P4 记录：近20条训练记录明细表格
+│   ├── 📁 Report/                # PDF 5 页专业报告组件
+│   │   ├── CoverPage.tsx         # P1 执行摘要：会员信息、训练量与评估摘要
+│   │   ├── PosturePage.tsx       # P2 证据：原比例真人三视图、节点与角度线
+│   │   ├── FindingsPage.tsx      # P3 量化结果：方向、不确定度、置信度与训练优先级
+│   │   ├── PlanPage.tsx          # P4 处方：第1–2周控制、第3–4周负荷整合
+│   │   └── HistoryPage.tsx       # P5 训练记录、执行审计与复评准备
 │   │
 │   └── 📁 Settings/              # 设置子组件
 │       └── AIConfig.tsx          # AI 提供商：Gemini/DeepSeek/Kimi 切换 + API Key 配置 + 测试连接
@@ -133,6 +134,7 @@ npm run dev           # → http://localhost:3000
 |------|------|--------|
 | `VITE_DB_MODE` | 数据模式: `mock`(演示) / `local`(本地) / `cloud`(云端) | `mock` |
 | `VITE_POSTURE_API_URL` | Flask 后端地址 | `http://localhost:5000` |
+| `VITE_POSTURE_V2_ENABLED` | 教练试点功能开关 | `true` |
 | `VITE_KIMI_API_KEY` | Kimi API Key（AI 教练用） | — |
 
 **数据模式说明：**
@@ -148,6 +150,16 @@ cd backend
 pip install -r requirements.txt    # 首次需要（含 mediapipe + opencv）
 python app.py                      # → http://localhost:5000
 ```
+
+V2 后端可用环境变量：
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `POSTURE_V2_ENABLED` | 后端功能开关，`false` 时 V2 接口返回 404 | `true` |
+| `POSE_LANDMARKER_MODEL` | MediaPipe `pose_landmarker_heavy.task` 绝对路径 | 未配置时使用 legacy heavy |
+| `POSTURE_VALIDATED_METRICS` | 已通过本项目可靠性门槛的指标 ID，逗号分隔 | 空（全部实验性） |
+
+未通过试点验证的指标仍展示原始角度与不确定度，并保持 `validated=false`、`trackable=false`，不进入趋势指数。趋势可比性与训练处方相互独立：只要评估成功，系统就会按统一的角度排序、问卷、训练经验、器械和频率生成教练参考处方；照片是否标准化只影响连续趋势比较。模型配置见 `backend/models/pose_landmarker/README.md`，试点统计见 `backend/validation/README.md`。
 
 > 体态分析是可选功能，不启动后端时系统其他功能仍可正常使用。
 
@@ -187,9 +199,14 @@ python app.py                      # → http://localhost:5000
   frontImage: string;    // base64 缩略图
   sideImage: string;
   backImage?: string;
-  report: PostureReport;           // 评分 + 问题列表
-  correctionPlan: CorrectionPlan;   // 4周矫正方案
-  aiRecommendation?: string;        // AI 综合建议
+  schemaVersion: 2;
+  protocolVersion: string;
+  report: PostureReport;             // 原始角度 + 可空趋势指数
+  capture: PostureCapture;           // 协议和质量状态
+  views: Record<string, PostureViewResult>; // 节点、标志点、坐标变换
+  measurements: PostureMeasurement[];
+  reconstruction: PostureReconstruction;   // 2.5D 估算
+  recommendation: PostureRecommendation;   // 教练审核草案
 }
 ```
 

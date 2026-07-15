@@ -13,6 +13,10 @@ interface ParsedWorkout {
   weight: number;
   sets: number;
   reps: number;
+  durationSeconds?: number;
+  rpe?: number;
+  completed?: boolean;
+  note?: string;
 }
 
 const IMPORT_PROMPT = `You are a fitness training log parser. Given a free-text training log in Chinese or English, extract each exercise into structured data.
@@ -23,6 +27,10 @@ Output ONLY a valid JSON array of objects. Each object must have these fields:
 - weight: number (in kg, default 0 if bodyweight)
 - sets: number (default 3 if not specified)
 - reps: number (default 10 if not specified)
+- durationSeconds: optional number (total hold/training time in seconds)
+- rpe: optional number (1-10 only when explicitly stated)
+- completed: boolean (default true for a completed training log)
+- note: optional short string (only preserve useful coach/member notes)
 
 Exercise name standardization:
 - "卧推" / "bench press" / "bp" → "Bench Press"
@@ -69,6 +77,10 @@ export async function parseTrainingLog(text: string, defaultDate: string): Promi
       weight: Number(w.weight) || 0,
       sets: Number(w.sets) || 3,
       reps: Number(w.reps) || 10,
+      durationSeconds: Number(w.durationSeconds) > 0 ? Number(w.durationSeconds) : undefined,
+      rpe: Number(w.rpe) >= 1 && Number(w.rpe) <= 10 ? Number(w.rpe) : undefined,
+      completed: w.completed !== false,
+      note: typeof w.note === 'string' && w.note.trim() ? w.note.trim() : undefined,
     }));
   } catch (err) {
     console.warn('AI parse failed, using fallback:', err);
@@ -101,6 +113,7 @@ function fallbackParse(text: string, defaultDate: string): ParsedWorkout[] {
           weight,
           sets,
           reps,
+          completed: true,
         });
       }
     }

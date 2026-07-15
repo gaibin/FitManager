@@ -15,6 +15,7 @@ import PostureRadar from './PostureRadar';
 import MemberGoals from './MemberGoals';
 import CorrelationAnalysis from './CorrelationAnalysis';
 import { exportMemberHistory } from '../services/excelService';
+import { getWorkoutSummary, isWorkoutCompleted } from '../services/workoutAnalytics';
 import { Member, Language, Workout, WellnessScore as WellnessScoreType } from '../types';
 import { TRANSLATIONS } from '../constants';
 
@@ -37,13 +38,15 @@ const Dashboard: React.FC<DashboardProps> = ({
   onDeleteWorkout, onUploadPhoto, editingSession, onEditSession, onCancelEdit,
 }) => {
   // Core metrics
-  const monthlyCount = member.workouts.filter(w => w.date.startsWith(filterMonth)).length || 0;
-  const maxWeight = member.workouts.reduce((max, w) => w.weight > max ? w.weight : max, 0) || 0;
-  const totalVolume = member.workouts.reduce((sum, w) => sum + (w.weight * w.sets * w.reps), 0) || 0;
+  const monthlyWorkouts = member.workouts.filter(w => w.date.startsWith(filterMonth));
+  const monthlySummary = getWorkoutSummary(monthlyWorkouts);
+  const monthlyCount = monthlySummary.sessionCount;
+  const maxWeight = member.workouts.filter(isWorkoutCompleted).reduce((max, w) => w.weight > max ? w.weight : max, 0) || 0;
+  const totalVolume = getWorkoutSummary(member.workouts).totalVolume;
 
   // Additional rich metrics
   const prevMonth = new Date(new Date(filterMonth).setMonth(new Date(filterMonth).getMonth() - 1)).toISOString().slice(0, 7);
-  const prevMonthCount = member.workouts.filter(w => w.date.startsWith(prevMonth)).length || 0;
+  const prevMonthCount = new Set(member.workouts.filter(w => w.date.startsWith(prevMonth)).map(w => w.date)).size;
   const monthDiff = monthlyCount - prevMonthCount;
   const monthTrend = monthlyCount >= prevMonthCount;
 
@@ -51,25 +54,23 @@ const Dashboard: React.FC<DashboardProps> = ({
   const exerciseFreq: Record<string, number> = {};
   member.workouts.forEach(w => { exerciseFreq[w.exercise] = (exerciseFreq[w.exercise] || 0) + 1; });
   const topExercise = Object.entries(exerciseFreq).sort((a, b) => b[1] - a[1])[0];
-  const uniqueExercises = Object.keys(exerciseFreq).length;
-
   // This week's sessions
   const now = new Date();
   const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
-  const weekCount = member.workouts.filter(w => new Date(w.date) >= weekStart).length;
+  const weekCount = new Set(member.workouts.filter(w => new Date(w.date) >= weekStart).map(w => w.date)).size;
 
-  // Best single-session volume
-  const sessionsByDate: Record<string, number> = {};
-  member.workouts.forEach(w => { sessionsByDate[w.date] = (sessionsByDate[w.date] || 0) + w.weight * w.sets * w.reps; });
-  const bestSession = Math.max(...Object.values(sessionsByDate), 0);
-
-  // Posture score
-  const postureScore = member.assessments?.[0]?.report?.score ?? null;
+  // V1 keeps its legacy score. V2 exposes a personal trend index, which must
+  // not be interpreted as a health score or mixed into the wellness formula.
+  const latestAssessment = member.assessments?.[0];
+  const postureScore = latestAssessment?.schemaVersion === 2
+    ? (latestAssessment.report.trendIndex ?? null)
+    : (latestAssessment?.report?.score ?? null);
+  const legacyPostureForWellness = latestAssessment?.schemaVersion === 2 ? null : postureScore;
 
   // Wellness score calculation
   const attendanceRate = Math.min(100, Math.round((monthlyCount / 12) * 100)); // 12 sessions/month = 100%
   const assessmentCount = member.assessments?.length ?? 0;
-  const postureRaw = postureScore ?? 0;
+  const postureRaw = legacyPostureForWellness;
   const progressScore = Math.min(100, Math.round(
     (member.workouts.length > 0 ? maxWeight / (member.workouts.length > 5 ? 100 : 50) : 0) * 100
   ));
@@ -77,11 +78,16 @@ const Dashboard: React.FC<DashboardProps> = ({
     posture: postureRaw,
     consistency: attendanceRate,
     progress: Math.min(100, progressScore),
-    total: Math.round(postureRaw * 0.4 + attendanceRate * 0.3 + Math.min(100, progressScore) * 0.3),
+    total: postureRaw == null
+      ? Math.round(attendanceRate * 0.5 + Math.min(100, progressScore) * 0.5)
+      : Math.round(postureRaw * 0.4 + attendanceRate * 0.3 + Math.min(100, progressScore) * 0.3),
   };
 
-  // Latest assessment issues for radar
-  const latestIssues = member.assessments?.[0]?.report?.issues ?? [];
+  // The legacy radar normalises unlike quantities into a pseudo-score. Keep it
+  // for old records only; V2 uses raw angles and traceable measurements.
+  const latestIssues = latestAssessment?.schemaVersion === 2
+    ? []
+    : (latestAssessment?.report?.issues ?? []);
 
   const handleExport = () => { exportMemberHistory(member); };
 
@@ -133,19 +139,19 @@ const Dashboard: React.FC<DashboardProps> = ({
           <p className="text-[10px] text-gray-400 mt-0.5">{topExercise?.[1] || 0} {lang === 'zh' ? '次' : 'times'}</p>
         </div>
         <div className="bg-white rounded-2xl px-5 py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{lang === 'zh' ? '动作种类' : 'Exercises'}</p>
-          <p className="text-sm font-bold text-gray-800 mt-1">{uniqueExercises}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{lang === 'zh' ? '种不同动作' : 'unique types'}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{lang === 'zh' ? '本月完成率' : 'Completion'}</p>
+          <p className="text-sm font-bold text-gray-800 mt-1">{monthlySummary.completionRate != null ? `${monthlySummary.completionRate}%` : '—'}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{monthlySummary.completedSets} {lang === 'zh' ? '个完成组' : 'completed sets'}</p>
         </div>
         <div className="bg-white rounded-2xl px-5 py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{lang === 'zh' ? '单日峰值' : 'Best Day'}</p>
-          <p className="text-sm font-bold text-gray-800 mt-1">{(bestSession / 1000).toFixed(1)}k</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">kg {lang === 'zh' ? '容量' : 'volume'}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{lang === 'zh' ? '平均 RPE' : 'Average RPE'}</p>
+          <p className="text-sm font-bold text-gray-800 mt-1">{monthlySummary.averageRpe != null ? monthlySummary.averageRpe.toFixed(1) : '—'}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{lang === 'zh' ? '主观训练强度 / 10' : 'effort / 10'}</p>
         </div>
         <div className="bg-white rounded-2xl px-5 py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{lang === 'zh' ? '体态评分' : 'Posture'}</p>
-          <p className="text-sm font-bold text-gray-800 mt-1">{postureScore !== null ? postureScore : '-'}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">/ 100</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{latestAssessment?.schemaVersion === 2 ? (lang === 'zh' ? '个人趋势指数' : 'Personal Trend') : (lang === 'zh' ? '体态评分' : 'Posture')}</p>
+          <p className="text-sm font-bold text-gray-800 mt-1">{postureScore !== null ? postureScore : latestAssessment?.schemaVersion === 2 ? (lang === 'zh' ? '基线' : 'Baseline') : '-'}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{latestAssessment?.schemaVersion === 2 ? (lang === 'zh' ? '仅纵向比较' : 'longitudinal only') : '/ 100'}</p>
         </div>
       </div>
 

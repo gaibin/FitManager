@@ -28,6 +28,12 @@ if CORS is not None:
 DEFAULT_HEIGHT = float(os.environ.get("DEFAULT_HEIGHT_CM", 170))
 
 
+@app.before_request
+def posture_v2_feature_gate():
+    if request.path.startswith("/api/posture/v2/") and os.environ.get("POSTURE_V2_ENABLED", "true").lower() == "false":
+        return jsonify({"success": False, "error": "体态评估 V2 尚未对当前环境开放"}), 404
+
+
 def check_runtime_dependencies() -> dict:
     modules = {
         "flask": "flask",
@@ -55,6 +61,14 @@ def get_posture_analyzer(height: float, gender: str, pose_engine: str = "auto"):
     except Exception as exc:
         raise RuntimeError(f"体态分析依赖不可用: {exc}") from exc
     return module.PostureAnalyzer(person_height_cm=height, gender=gender, pose_engine=pose_engine)
+
+
+def get_posture_analyzer_v2(height: float):
+    try:
+        module = importlib.import_module("posture_v2")
+    except Exception as exc:
+        raise RuntimeError(f"体态评估 V2 依赖不可用: {exc}") from exc
+    return module.PostureAnalyzerV2(person_height_cm=height)
 
 
 def get_food_analyzer():
@@ -150,6 +164,88 @@ def analyze_keypoints():
         return jsonify({"success": False, "error": str(exc)}), 500
 
 
+@app.route("/api/posture/v2/check-view", methods=["POST"])
+def posture_v2_check_view():
+    body = request.get_json(force=True)
+    if not body.get("image") or body.get("view") not in {"front", "side", "back"}:
+        return jsonify({"success": False, "error": "缺少 image 或 view 无效"}), 400
+
+    image_tmp = None
+    try:
+        image_tmp = decode_image(body["image"])
+        analyzer = get_posture_analyzer_v2(float(body.get("height_cm", DEFAULT_HEIGHT)))
+        data = analyzer.check_view(
+            image_tmp,
+            view=body["view"],
+            capture_mode=body.get("capture_mode", "upload"),
+            protocol_acknowledged=bool(body.get("protocol_acknowledged", False)),
+        )
+        return jsonify({"success": True, "data": data})
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 422
+    except RuntimeError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 503
+    except Exception as exc:
+        app.logger.exception("posture v2 view check failed: %s", exc)
+        return jsonify({"success": False, "error": "视图检查失败"}), 500
+    finally:
+        cleanup_temp_files(image_tmp)
+
+
+@app.route("/api/posture/v2/analyze", methods=["POST"])
+def posture_v2_analyze():
+    body = request.get_json(force=True)
+    if not body.get("front_image") or not body.get("side_image"):
+        return jsonify({"success": False, "error": "V2 评估至少需要正面照和侧面照"}), 400
+
+    paths = {}
+    try:
+        for view in ("front", "side", "back"):
+            encoded = body.get(f"{view}_image")
+            if encoded:
+                paths[view] = decode_image(encoded)
+        analyzer = get_posture_analyzer_v2(float(body.get("height_cm", DEFAULT_HEIGHT)))
+        data = analyzer.analyze_images(
+            paths,
+            capture_mode=body.get("capture_mode", "upload"),
+            protocol_acknowledged=bool(body.get("protocol_acknowledged", False)),
+            questionnaire=body.get("questionnaire") or {},
+            previous_assessment=body.get("previous_assessment") or None,
+        )
+        return jsonify({"success": True, "data": data})
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 422
+    except RuntimeError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 503
+    except Exception as exc:
+        app.logger.exception("posture v2 analyze failed: %s", exc)
+        return jsonify({"success": False, "error": "体态评估 V2 分析失败"}), 500
+    finally:
+        cleanup_temp_files(*paths.values())
+
+
+@app.route("/api/posture/v2/recompute", methods=["POST"])
+def posture_v2_recompute():
+    body = request.get_json(force=True)
+    if not body.get("views"):
+        return jsonify({"success": False, "error": "缺少 views"}), 400
+    try:
+        analyzer = get_posture_analyzer_v2(float(body.get("height_cm", DEFAULT_HEIGHT)))
+        data = analyzer.recompute(
+            body["views"],
+            questionnaire=body.get("questionnaire") or {},
+            previous_assessment=body.get("previous_assessment") or None,
+        )
+        return jsonify({"success": True, "data": data})
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 422
+    except RuntimeError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 503
+    except Exception as exc:
+        app.logger.exception("posture v2 recompute failed: %s", exc)
+        return jsonify({"success": False, "error": "节点复核计算失败"}), 500
+
+
 @app.route("/api/food/analyze", methods=["POST"])
 def analyze_food():
     body = request.get_json(force=True)
@@ -217,7 +313,7 @@ def health():
     return jsonify(
         {
             "status": "ok" if not missing else "degraded",
-            "version": "1.2.0",
+            "version": "2.0.0",
             "dependencies": deps,
             "missing_dependencies": missing,
             "pose_engines": {
@@ -236,6 +332,7 @@ def health():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    debug = os.environ.get("DEBUG", "true").lower() == "true"
+    debug = os.environ.get("DEBUG", "false").lower() == "true"
+    use_reloader = os.environ.get("USE_RELOADER", "false").lower() == "true"
     print(f"API starting on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    app.run(host="0.0.0.0", port=port, debug=debug, use_reloader=use_reloader)

@@ -1,58 +1,67 @@
-/**
- * PDF 报告第4页 — 近期训练记录明细（Apple HIG 风格）
- */
-
 import React from 'react';
-import { Member, Language } from '../../types';
+import type { Language, Member } from '../../types';
+import { MetricPill, REPORT, ReportFooter, ReportHeader, reportPageStyle } from './reportTheme';
 
-interface HistoryPageProps { member: Member; lang: Language; studioName: string; }
+interface HistoryPageProps { member: Member; lang: Language; studioName: string; pageNumber?: number; }
 
-const COLS = (lang: string) => [
-  { label: lang === 'zh' ? '日期' : 'Date', w: '18%' },
-  { label: lang === 'zh' ? '动作' : 'Exercise', w: '34%' },
-  { label: lang === 'zh' ? '重量' : 'Weight', w: '16%' },
-  { label: lang === 'zh' ? '组 x 次' : 'Sets × Reps', w: '16%' },
-  { label: lang === 'zh' ? '容量' : 'Volume', w: '16%' },
-];
-
-const S = {
-  thStyle: { fontSize: 11, color: '#8E8E93', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
-};
-
-const HistoryPage: React.FC<HistoryPageProps> = ({ member, lang, studioName }) => {
-  const rows = [...member.workouts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 20);
-  const cols = COLS(lang);
+const HistoryPage: React.FC<HistoryPageProps> = ({ member, lang, studioName, pageNumber = 5 }) => {
+  const rows = [...member.workouts].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 17);
+  const sessions = new Set(member.workouts.map(item => item.date)).size;
+  const volume = member.workouts.reduce((sum, item) => sum + item.weight * item.sets * item.reps, 0);
+  const maxLoad = member.workouts.reduce((max, item) => Math.max(max, item.weight), 0);
+  const latest = member.workouts.map(item => item.date).sort().at(-1) || '—';
+  const assessmentDate = member.assessments?.[0]?.date || new Date().toISOString().split('T')[0];
 
   return (
-    <div style={{ width: 794, height: 1123, backgroundColor: '#ffffff', color: '#1D1D1F', padding: '60px 50px', fontFamily: 'Inter, system-ui, -apple-system, sans-serif', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ borderBottom: '1px solid #E5E5EA', paddingBottom: 15, marginBottom: 30 }}><span style={{ fontSize: 12, color: '#8E8E93', letterSpacing: 2, fontWeight: 500 }}>{studioName}</span></div>
-      <h2 style={{ fontSize: 24, fontWeight: 800, color: '#1D1D1F', margin: '0 0 24px 0' }}>{lang === 'zh' ? '近期训练记录' : 'Recent Training Records'}</h2>
+    <div style={reportPageStyle}>
+      <ReportHeader studioName={studioName} section={`${String(pageNumber).padStart(2, '0')} · TRAINING AUDIT`} title={lang === 'zh' ? '训练记录与复评准备' : 'Training audit & reassessment preparation'}
+        subtitle={lang === 'zh' ? '汇总训练负荷、动作完成情况与下一次体态复评准备。' : 'A consolidated view of training load, exercise completion, and preparation for the next posture reassessment.'} />
 
-      {rows.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 14, color: '#8E8E93' }}>{lang === 'zh' ? '暂无训练记录' : 'No training records yet'}</span></div>
-      ) : (
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', backgroundColor: '#F2F2F7', borderRadius: '10px 10px 0 0', padding: '12px 16px', borderBottom: '2px solid #E5E5EA' }}>
-            {cols.map((c, i) => <span key={i} style={{ ...S.thStyle, width: c.w }}>{c.label}</span>)}
-          </div>
-          <div style={{ border: '1px solid #E5E5EA', borderTop: 'none', borderRadius: '0 0 10px 10px', overflow: 'hidden' }}>
-            {rows.map((w, i) => (
-              <div key={w.id} style={{ display: 'flex', padding: '10px 16px', alignItems: 'center', backgroundColor: i % 2 === 0 ? '#FAFAFA' : '#ffffff', borderBottom: i < rows.length - 1 ? '1px solid #F2F2F7' : 'none' }}>
-                <span style={{ width: cols[0].w, fontSize: 12, color: '#007AFF', fontWeight: 500, fontFamily: 'monospace' }}>{w.date.slice(5)}</span>
-                <span style={{ width: cols[1].w, fontSize: 13, color: '#1D1D1F', fontWeight: 500 }}>{w.exercise}</span>
-                <span style={{ width: cols[2].w, fontSize: 13, color: '#636366' }}>{w.weight} kg</span>
-                <span style={{ width: cols[3].w, fontSize: 13, color: '#636366' }}>{w.sets}×{w.reps}</span>
-                <span style={{ width: cols[4].w, fontSize: 13, color: '#636366' }}>{(w.weight * w.sets * w.reps).toLocaleString()} kg</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: 15, marginTop: 24, display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 11, color: '#8E8E93' }}>{studioName}</span>
-        <span style={{ fontSize: 11, color: '#8E8E93' }}>{lang === 'zh' ? '第 4 页' : 'Page 4'} / {new Date().toISOString().split('T')[0]}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
+        <MetricPill label={lang === 'zh' ? '累计训练日' : 'Training days'} value={`${sessions}`} />
+        <MetricPill label={lang === 'zh' ? '记录总容量' : 'Logged volume'} value={`${(volume / 1000).toFixed(1)} t`} />
+        <MetricPill label={lang === 'zh' ? '最大记录负荷' : 'Max logged load'} value={`${maxLoad} kg`} />
+        <MetricPill label={lang === 'zh' ? '最近记录' : 'Latest entry'} value={latest} />
       </div>
+
+      <div style={{ border: `1px solid ${REPORT.line}`, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '78px 1.55fr 78px 90px 92px', background: REPORT.navy, color: '#FFFFFF', padding: '9px 12px', fontSize: 8, fontWeight: 800 }}>
+          <span>{lang === 'zh' ? '日期' : 'DATE'}</span><span>{lang === 'zh' ? '动作' : 'EXERCISE'}</span><span>{lang === 'zh' ? '负荷' : 'LOAD'}</span><span>{lang === 'zh' ? '组 × 次' : 'SETS × REPS'}</span><span>{lang === 'zh' ? '容量' : 'VOLUME'}</span>
+        </div>
+        {rows.length ? rows.map((item, index) => (
+          <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '78px 1.55fr 78px 90px 92px', padding: '9px 12px', alignItems: 'center', borderTop: index ? `1px solid ${REPORT.line}` : 0, background: index % 2 ? '#FBFCFE' : '#FFFFFF', color: REPORT.ink, fontSize: 8.7 }}>
+            <span style={{ color: REPORT.blue, fontWeight: 750 }}>{item.date}</span><span style={{ fontWeight: 700 }}>{item.exercise}</span><span>{item.weight} kg</span><span>{item.sets} × {item.reps}</span><span>{(item.weight * item.sets * item.reps).toLocaleString()} kg</span>
+          </div>
+        )) : <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: REPORT.muted, fontSize: 10 }}>{lang === 'zh' ? '尚无训练记录；从本期处方开始记录动作、剂量和症状反应。' : 'No training log yet; begin recording exercise, dose, and symptom response with this plan.'}</div>}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11, marginBottom: 14 }}>
+        <div style={{ border: `1px solid ${REPORT.line}`, background: REPORT.pale, padding: 14 }}>
+          <p style={{ margin: 0, color: REPORT.navy, fontSize: 9, fontWeight: 850 }}>{lang === 'zh' ? '每次训练后记录' : 'LOG AFTER EACH SESSION'}</p>
+          <ul style={{ margin: '9px 0 0', paddingLeft: 15, color: REPORT.muted, fontSize: 8.2, lineHeight: 1.55 }}>
+            <li>{lang === 'zh' ? '完成的动作、组数、次数和阻力' : 'Exercise, sets, reps, and resistance completed'}</li>
+            <li>{lang === 'zh' ? '训练前后疼痛/不适评分（0–10）' : 'Pre/post pain or discomfort score (0–10)'}</li>
+            <li>{lang === 'zh' ? '动作质量：稳定 / 需提示 / 无法完成' : 'Movement quality: stable / cued / unable'}</li>
+            <li>{lang === 'zh' ? '是否使用退阶或提前停止' : 'Whether regression or early stopping was needed'}</li>
+          </ul>
+        </div>
+        <div style={{ border: `1px solid ${REPORT.line}`, background: REPORT.pale, padding: 14 }}>
+          <p style={{ margin: 0, color: REPORT.navy, fontSize: 9, fontWeight: 850 }}>{lang === 'zh' ? '复评前检查' : 'BEFORE REASSESSMENT'}</p>
+          <ul style={{ margin: '9px 0 0', paddingLeft: 15, color: REPORT.muted, fontSize: 8.2, lineHeight: 1.55 }}>
+            <li>{lang === 'zh' ? '使用相同镜头高度、距离和拍摄协议' : 'Use the same camera height, distance, and protocol'}</li>
+            <li>{lang === 'zh' ? '尽量在相近时段、训练状态下复拍' : 'Repeat at a similar time and training state'}</li>
+            <li>{lang === 'zh' ? '复核相同解剖贴点，记录人工修正' : 'Review the same markers and log manual corrections'}</li>
+            <li>{lang === 'zh' ? '先比较是否超过 MDC，再解释变化方向' : 'Check MDC before interpreting change direction'}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style={{ border: `1px solid ${REPORT.line}`, padding: '12px 14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><p style={{ margin: 0, color: REPORT.navy, fontSize: 9, fontWeight: 850 }}>{lang === 'zh' ? '教练复评记录' : 'COACH REASSESSMENT NOTE'}</p><span style={{ color: REPORT.muted, fontSize: 8 }}>{lang === 'zh' ? `本次基线 ${assessmentDate}` : `Current baseline ${assessmentDate}`}</span></div>
+        <div style={{ marginTop: 12, height: 76, backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent 24px, ${REPORT.line} 25px)`, backgroundSize: '100% 25px' }} />
+      </div>
+
+      <ReportFooter studioName={studioName} page={pageNumber} date={assessmentDate} />
     </div>
   );
 };

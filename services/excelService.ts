@@ -14,7 +14,11 @@ export const exportMemberHistory = (member: Member) => {
     Weight_KG: w.weight,
     Sets: w.sets,
     Reps: w.reps,
-    Total_Volume: w.weight * w.sets * w.reps
+    Duration_Seconds: w.durationSeconds ?? '',
+    RPE: w.rpe ?? '',
+    Completed: w.completed !== false ? 'Yes' : 'No',
+    Note: w.note ?? '',
+    Total_Volume: w.completed !== false ? w.weight * w.sets * w.reps : 0,
   }));
 
   // Create worksheet

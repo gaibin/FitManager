@@ -1,124 +1,96 @@
-/**
- * PDF 报告第2页 — 体态评估结果（Apple HIG 风格）
- * 照片用 canvas 预渲染写死比例，确保 html2canvas 截图时不压缩人物
- */
-
-import React, { useState, useEffect, useRef } from 'react';
-import { Member, Language, PostureIssue } from '../../types';
-import PostureHeatmap from '../PostureHeatmap';
+import React from 'react';
+import type { Language, Member, PostureLandmark, PostureMeasurement, PostureView, PostureViewResult } from '../../types';
+import ReportEvidenceFigure from './ReportEvidenceFigure';
+import { MetricPill, REPORT, ReportFooter, ReportHeader, reportPageStyle } from './reportTheme';
 
 interface PosturePageProps { member: Member; lang: Language; studioName: string; }
 
-const PAGE_W = 794;
-const PADDING = 50;
-const GAP = 12;
-const MAX_H = 240;
-const AVAIL_W = PAGE_W - PADDING * 2;
-
-const S = {
-  page: { width: PAGE_W, height: 1123, backgroundColor: '#ffffff', color: '#1D1D1F', padding: `${PADDING}px`, fontFamily: 'Inter, system-ui, -apple-system, sans-serif', boxSizing: 'border-box' as const, display: 'flex', flexDirection: 'column' as const },
-  hdr: { borderBottom: '1px solid #E5E5EA', paddingBottom: 15, marginBottom: 30 },
-  hdrTxt: { fontSize: 12, color: '#8E8E93', letterSpacing: 2, fontWeight: 500 },
-  h2: { fontSize: 24, fontWeight: 800, color: '#1D1D1F', margin: '0 0 24px 0' },
-  score: (c: string) => ({ width: 100, height: 100, borderRadius: '50%', border: `4px solid ${c}`, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F2F7', lineHeight: 1 }),
-  footer: { borderTop: '1px solid #E5E5EA', paddingTop: 15, marginTop: 24, display: 'flex', justifyContent: 'space-between' as const },
-  fText: { fontSize: 11, color: '#8E8E93' },
+const VIEW_LABELS: Record<PostureView, { zh: string; en: string }> = {
+  front: { zh: '正面证据', en: 'FRONT EVIDENCE' },
+  side: { zh: '侧面证据', en: 'SIDE EVIDENCE' },
+  back: { zh: '背面证据', en: 'BACK EVIDENCE' },
 };
 
-const sevInfo: Record<string, { border: string; bg: string; text: string }> = {
-  '正常': { border: '#34C759', bg: 'rgba(52,199,89,0.08)', text: '#248A3D' },
-  '中度': { border: '#FF9500', bg: 'rgba(255,149,0,0.08)', text: '#C93400' },
-  '严重': { border: '#FF3B30', bg: 'rgba(255,59,48,0.08)', text: '#BC1C17' },
-  '低置信度': { border: '#8E8E93', bg: 'rgba(142,142,147,0.08)', text: '#636366' },
-};
-
-// Canvas 预渲染图片：加载原图后以正确比例绘制到 canvas，html2canvas 直接捕获 canvas 就不会变形
-function useProportionalCanvas(src: string | undefined) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-
-  useEffect(() => {
-    if (!src) return;
-    const img = new Image();
-    img.onload = () => {
-      const colW = Math.floor((AVAIL_W - GAP * 2) / 3);
-      const ratio = Math.min(colW / img.width, MAX_H / img.height, 1);
-      const w = Math.round(img.width * ratio);
-      const h = Math.round(img.height * ratio);
-      setSize({ w, h });
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-      }
-    };
-    img.src = src;
-  }, [src]);
-
-  return { canvasRef, size };
-}
-
-function PhotoCard({ src, label, issues }: { src?: string; label: string; issues: PostureIssue[] }) {
-  const { canvasRef, size } = useProportionalCanvas(src);
-  if (!src) return null;
-  return (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ backgroundColor: '#F2F2F7', borderRadius: 12, overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-        <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%' }} />
-        {size && <PostureHeatmap issues={issues} width={size.w} height={size.h} opacity={0.45} />}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.45)', padding: '5px 12px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#fff' }}>{label}</div>
-      </div>
-    </div>
-  );
+function evidenceMeasurement(measurements: PostureMeasurement[], view: PostureView) {
+  return measurements
+    .filter(item => item.view === view && item.status === 'measured')
+    .sort((a, b) => Math.abs(b.value) / Math.max(b.uncertainty, 0.5) - Math.abs(a.value) / Math.max(a.uncertainty, 0.5))[0];
 }
 
 const PosturePage: React.FC<PosturePageProps> = ({ member, lang, studioName }) => {
-  const a = member.assessments?.[0];
-  if (!a) return <div style={{ ...S.page, alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 18, color: '#8E8E93' }}>{lang === 'zh' ? '暂无体态评估数据' : 'No posture assessment data'}</span></div>;
+  const assessment = member.assessments?.[0];
+  if (!assessment) {
+    return <div style={{ ...reportPageStyle, alignItems: 'center', justifyContent: 'center' }}>{lang === 'zh' ? '暂无体态评估数据' : 'No posture assessment data'}</div>;
+  }
 
-  const { report } = a;
-  const sc = report.score >= 70 ? '#34C759' : report.score >= 40 ? '#FF9500' : '#FF3B30';
+  if (assessment.schemaVersion !== 2) {
+    return (
+      <div style={reportPageStyle}>
+        <ReportHeader studioName={studioName} section="02 · LEGACY ASSESSMENT" title={lang === 'zh' ? '旧版体态筛查结果' : 'Legacy posture screen'}
+          subtitle={lang === 'zh' ? '保留旧版照片与角度记录，供教练回顾。' : 'Legacy images and angles are retained for coach review.'} />
+        <div style={{ padding: 20, border: `1px solid ${REPORT.line}`, background: REPORT.pale }}>
+          {(assessment.report.issues || []).map(item => <p key={item.name} style={{ fontSize: 11 }}>{lang === 'zh' ? item.name : item.nameEn}: {item.value.toFixed(1)} {item.unit}</p>)}
+        </div>
+        <ReportFooter studioName={studioName} page={2} date={assessment.date} />
+      </div>
+    );
+  }
+
+  const measurements = assessment.measurements || assessment.report.measurements || [];
+  const views = (['front', 'side', 'back'] as PostureView[]).filter(view => assessment.views?.[view] && (view === 'front' ? assessment.frontImage : view === 'side' ? assessment.sideImage : assessment.backImage));
+  const reviewedCount = (Object.values(assessment.views || {}) as (PostureViewResult | undefined)[]).reduce(
+    (sum, view) => sum + (Object.values(view?.markers || {}) as PostureLandmark[]).filter(point => point.source === 'manual' || point.source === 'marker').length,
+    0,
+  );
 
   return (
-    <div style={S.page}>
-      <div style={S.hdr}><span style={S.hdrTxt}>{studioName}</span></div>
-      <h2 style={S.h2}>{lang === 'zh' ? '体态评估' : 'Posture Assessment'}</h2>
+    <div style={reportPageStyle}>
+      <ReportHeader studioName={studioName} section="02 · PHOTOGRAMMETRY EVIDENCE" title={lang === 'zh' ? '真人照片、节点与角度证据' : 'Member images, landmarks & angle evidence'}
+        subtitle={lang === 'zh' ? '三张原图保持真人原始比例，直接叠加识别节点、人工复核点与主要测量线。' : 'All member images retain their native proportions with landmarks, reviewed points, and primary measurement lines overlaid.'} />
 
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28, gap: 24 }}>
-        <div style={S.score(sc)}><span style={{ fontSize: 28, fontWeight: 900, color: '#1D1D1F' }}>{report.score}</span><span style={{ fontSize: 11, color: '#8E8E93' }}>/ 100</span></div>
-        <div><p style={{ fontSize: 14, color: '#8E8E93', margin: '0 0 4px 0' }}>{lang === 'zh' ? '置信度' : 'Confidence'}</p><p style={{ fontSize: 18, fontWeight: 700, color: sc, margin: 0 }}>{(report.confidence * 100).toFixed(0)}%</p></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
+        <MetricPill label={lang === 'zh' ? '证据视图' : 'Evidence views'} value={`${views.length}`} />
+        <MetricPill label={lang === 'zh' ? '节点置信度' : 'Landmark confidence'} value={`${Math.round(assessment.report.confidence * 100)}%`} />
+        <MetricPill label={lang === 'zh' ? '角度指标' : 'Angle metrics'} value={`${measurements.length}`} />
+        <MetricPill label={lang === 'zh' ? '贴点/人工复核' : 'Reviewed markers'} value={`${reviewedCount}`} />
       </div>
 
-      {/* Photos — canvas 预渲染，确保 html2canvas 截图时人物比例正确 */}
-      <div style={{ display: 'flex', gap: GAP, marginBottom: 28, alignItems: 'flex-start' }}>
-        <PhotoCard src={a.frontImage} label={lang === 'zh' ? '正面' : 'Front'} issues={report.issues} />
-        <PhotoCard src={a.sideImage} label={lang === 'zh' ? '侧面' : 'Side'} issues={report.issues} />
-        <PhotoCard src={a.backImage} label={lang === 'zh' ? '背面' : 'Back'} issues={report.issues} />
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(views.length, 1)}, 1fr)`, gap: 9, alignItems: 'start', marginBottom: 16 }}>
+        {views.map(view => {
+          const src = view === 'front' ? assessment.frontImage : view === 'side' ? assessment.sideImage : assessment.backImage!;
+          return <div key={view}><ReportEvidenceFigure src={src} view={assessment.views![view]!} measurement={evidenceMeasurement(measurements, view)} label={lang === 'zh' ? VIEW_LABELS[view].zh : VIEW_LABELS[view].en} lang={lang} /></div>;
+        })}
       </div>
 
-      <div style={{ flex: 1 }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1D1D1F', margin: '0 0 16px 0' }}>{lang === 'zh' ? '检测结果' : 'Results'}</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {report.issues.map((issue, idx) => {
-            const c = sevInfo[issue.severity] || sevInfo['中度'];
-            return (
-              <div key={idx} style={{ backgroundColor: c.bg, border: `1px solid ${c.border}20`, borderRadius: 12, padding: '14px 18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{lang === 'zh' ? issue.name : issue.nameEn}</span>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: c.border + '30', color: c.text, fontWeight: 600, lineHeight: 1 }}>{issue.value.toFixed(1)} {issue.unit}</span>
+      <div style={{ border: `1px solid ${REPORT.line}`, marginBottom: 13 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: REPORT.navy, color: '#FFFFFF', padding: '9px 12px' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: .7 }}>{lang === 'zh' ? '照片角度摘要' : 'IMAGE ANGLE SUMMARY'}</span>
+          <span style={{ fontSize: 7.5, opacity: .8 }}>{lang === 'zh' ? '数值 · 方向 · 定位误差' : 'VALUE · DIRECTION · LOCALISATION ERROR'}</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(views.length, 1)}, 1fr)` }}>
+          {views.map((view, viewIndex) => (
+            <div key={view} style={{ padding: '11px 12px', borderLeft: viewIndex ? `1px solid ${REPORT.line}` : 0 }}>
+              <p style={{ margin: 0, color: REPORT.blue, fontSize: 8, fontWeight: 850, letterSpacing: .7 }}>{lang === 'zh' ? VIEW_LABELS[view].zh : VIEW_LABELS[view].en}</p>
+              {measurements.filter(item => item.view === view).slice(0, 3).map(item => (
+                <div key={item.id} style={{ marginTop: 8, paddingTop: 7, borderTop: `1px solid ${REPORT.line}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ color: REPORT.ink, fontSize: 8.2, fontWeight: 750 }}>{lang === 'zh' ? item.name : item.nameEn}</span>
+                    <span style={{ color: REPORT.navy, fontSize: 9, fontWeight: 850, whiteSpace: 'nowrap' }}>{item.value.toFixed(1)}{item.unit} ±{item.uncertainty.toFixed(1)}</span>
+                  </div>
+                  <p style={{ margin: '3px 0 0', color: REPORT.muted, fontSize: 7.1 }}>{item.direction}</p>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, color: '#8E8E93' }}>{lang === 'zh' ? issue.description : issue.descriptionEn}</span>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: c.border, color: '#fff', lineHeight: 1 }}>{issue.severity}</span>
-                </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
-      <div style={S.footer}><span style={S.fText}>{studioName}</span><span style={S.fText}>{lang === 'zh' ? '第 2 页' : 'Page 2'} / {new Date().toISOString().split('T')[0]}</span></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 11px', background: REPORT.pale, border: `1px solid ${REPORT.line}`, color: REPORT.muted, fontSize: 7.7 }}>
+        <span><b style={{ color: '#3182CE' }}>●</b> {lang === 'zh' ? '模型节点' : 'Model landmark'}　<b style={{ color: '#2F9E72' }}>●</b> {lang === 'zh' ? '贴点/人工复核' : 'Marker/manual review'}　<b style={{ color: '#F59E0B' }}>●</b> {lang === 'zh' ? '当前测量线' : 'Primary measurement'}</span>
+        <span>{assessment.protocolVersion} · {assessment.modelVersion}</span>
+      </div>
+
+      <ReportFooter studioName={studioName} page={2} date={assessment.date} />
     </div>
   );
 };

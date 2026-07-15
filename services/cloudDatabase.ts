@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './supabaseClient';
-import type { Member, Workout } from '../types';
+import type { Member, PostureAssessment, Workout } from '../types';
 
 /**
  * 基于 Supabase 的云端数据库，实现与�?MockDatabase 相同的接�?
@@ -48,6 +48,15 @@ class CloudDatabase {
       return [];
     }
 
+    const { data: assessmentRows, error: assessmentError } = await supabase
+      .from('posture_assessments')
+      .select('member_id, data, assessment_date')
+      .order('assessment_date', { ascending: false });
+
+    if (assessmentError) {
+      console.error('[Supabase] getMembers posture assessments error', assessmentError);
+    }
+
     const workoutsByMember: Record<string, Workout[]> = {};
     (workoutRows || []).forEach((w: any) => {
       const memberId = w.member_id;
@@ -59,7 +68,18 @@ class CloudDatabase {
         weight: Number(w.weight),
         sets: Number(w.sets),
         reps: Number(w.reps),
+        durationSeconds: w.duration_seconds == null ? undefined : Number(w.duration_seconds),
+        rpe: w.rpe == null ? undefined : Number(w.rpe),
+        completed: w.completed == null ? undefined : Boolean(w.completed),
+        note: w.note || undefined,
       });
+    });
+
+    const assessmentsByMember: Record<string, PostureAssessment[]> = {};
+    (assessmentRows || []).forEach((row: any) => {
+      const memberId = row.member_id;
+      if (!assessmentsByMember[memberId]) assessmentsByMember[memberId] = [];
+      if (row.data) assessmentsByMember[memberId].push(row.data as PostureAssessment);
     });
 
     return (memberRows || []).map((m: any) => ({
@@ -70,14 +90,20 @@ class CloudDatabase {
       gender: m.gender || 'male',
       heightCm: m.height_cm || 170,
       workouts: workoutsByMember[m.id] || [],
-      assessments: [],
+      assessments: assessmentsByMember[m.id] || [],
       photoUrl: m.photo_url || undefined,
     }));
   }
 
   async addMember(
     name: string,
-    options?: { joinDate?: string; avatar?: string; photoUrl?: string }
+    options?: {
+      joinDate?: string;
+      avatar?: string;
+      photoUrl?: string;
+      gender?: 'male' | 'female';
+      heightCm?: number;
+    }
   ): Promise<Member> {
     const supabase = getSupabaseClient();
     const joinDate = options?.joinDate || new Date().toISOString().split('T')[0];
@@ -85,6 +111,8 @@ class CloudDatabase {
       options?.avatar ||
       `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
     const photoUrl = options?.photoUrl;
+    const gender = options?.gender || 'male';
+    const heightCm = options?.heightCm || 170;
 
     const { data, error } = await supabase
       .from('members')
@@ -93,6 +121,8 @@ class CloudDatabase {
         avatar,
         join_date: joinDate,
         photo_url: photoUrl,
+        gender,
+        height_cm: heightCm,
       })
       .select('*')
       .single();
@@ -156,13 +186,17 @@ class CloudDatabase {
     workouts: Omit<Workout, 'id'>[]
   ): Promise<Workout[]> {
     const supabase = getSupabaseClient();
-    const rows = workouts.map((w) => ({
+      const rows = workouts.map((w) => ({
       member_id: memberId,
       date: w.date,
       exercise: w.exercise,
       weight: w.weight,
       sets: w.sets,
-      reps: w.reps,
+        reps: w.reps,
+        duration_seconds: w.durationSeconds,
+        rpe: w.rpe,
+        completed: w.completed,
+        note: w.note,
     }));
 
     const { data, error } = await supabase
@@ -181,7 +215,11 @@ class CloudDatabase {
       exercise: w.exercise,
       weight: Number(w.weight),
       sets: Number(w.sets),
-      reps: Number(w.reps),
+        reps: Number(w.reps),
+        durationSeconds: w.duration_seconds == null ? undefined : Number(w.duration_seconds),
+        rpe: w.rpe == null ? undefined : Number(w.rpe),
+        completed: w.completed == null ? undefined : Boolean(w.completed),
+        note: w.note || undefined,
     }));
   }
 
@@ -195,6 +233,10 @@ class CloudDatabase {
         weight: workout.weight,
         sets: workout.sets,
         reps: workout.reps,
+        duration_seconds: workout.durationSeconds,
+        rpe: workout.rpe,
+        completed: workout.completed,
+        note: workout.note,
       })
       .eq('id', workout.id)
       .eq('member_id', memberId);
@@ -219,30 +261,89 @@ class CloudDatabase {
     }
   }
 
-  // --- Posture Assessments (stub for now, can be extended with Supabase table) ---
-  async saveAssessment(memberId: string, assessment: any): Promise<void> {
-    console.warn('[Supabase] saveAssessment not implemented for cloud mode. Assessment stored locally only.');
+  // --- Posture Assessments ---
+  async saveAssessment(memberId: string, assessment: PostureAssessment): Promise<void> {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.from('posture_assessments').upsert({
+      id: assessment.id,
+      member_id: memberId,
+      assessment_date: assessment.date,
+      data: assessment,
+    }, { onConflict: 'member_id,assessment_date' });
+    if (error) {
+      console.error('[Supabase] saveAssessment error', error);
+      throw new Error('Failed to save posture assessment');
+    }
   }
 
-  async getAssessments(memberId: string): Promise<any[]> {
-    console.warn('[Supabase] getAssessments not implemented for cloud mode.');
-    return [];
+  async getAssessments(memberId: string): Promise<PostureAssessment[]> {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('posture_assessments')
+      .select('data')
+      .eq('member_id', memberId)
+      .order('assessment_date', { ascending: false });
+    if (error) {
+      console.error('[Supabase] getAssessments error', error);
+      return [];
+    }
+    return (data || []).map((row: any) => row.data as PostureAssessment);
   }
 
   async deleteAssessment(memberId: string, assessmentId: string): Promise<void> {
-    console.warn('[Supabase] deleteAssessment not implemented for cloud mode.');
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('posture_assessments')
+      .delete()
+      .eq('member_id', memberId)
+      .eq('id', assessmentId);
+    if (error) {
+      console.error('[Supabase] deleteAssessment error', error);
+      throw new Error('Failed to delete posture assessment');
+    }
   }
 
   async saveAIConfig(config: any): Promise<void> {
-    console.warn('[Supabase] saveAIConfig not implemented for cloud mode.');
+    await this.saveConfig('ai_config', config);
   }
 
-  async saveStudioConfig(s: any): Promise<void> {}
+  async saveStudioConfig(config: any): Promise<void> {
+    await this.saveConfig('studio_config', config);
+  }
 
-  async getStudioConfig(): Promise<any> { return null; }
+  async getStudioConfig(): Promise<any> {
+    return this.getConfig('studio_config');
+  }
 
   async getAIConfig(): Promise<any | null> {
-    return null;
+    return this.getConfig('ai_config');
+  }
+
+  private async saveConfig(key: string, value: any): Promise<void> {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.from('app_configs').upsert({
+      key,
+      value,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) {
+      console.error(`[Supabase] saveConfig ${key} error`, error);
+      throw new Error(`Failed to save ${key}`);
+    }
+  }
+
+  private async getConfig(key: string): Promise<any | null> {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('app_configs')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+    if (error) {
+      console.error(`[Supabase] getConfig ${key} error`, error);
+      return null;
+    }
+    return data?.value ?? null;
   }
 }
 
