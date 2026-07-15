@@ -236,6 +236,7 @@ class PoseDetectorV2:
 
     def __init__(self) -> None:
         self.task_model_path = os.environ.get("POSE_LANDMARKER_MODEL", "")
+        self.output_segmentation = os.environ.get("POSTURE_SEGMENTATION_MASKS", "true").lower() == "true"
         self.task = None
         self.engine = "mediapipe-legacy-heavy"
         if self.task_model_path and os.path.exists(self.task_model_path):
@@ -248,7 +249,7 @@ class PoseDetectorV2:
                     num_poses=1,
                     min_pose_detection_confidence=0.65,
                     min_pose_presence_confidence=0.65,
-                    output_segmentation_masks=True,
+                    output_segmentation_masks=self.output_segmentation,
                 )
                 self.task = mp.tasks.vision.PoseLandmarker.create_from_options(options)
                 self.engine = "mediapipe-tasks-heavy"
@@ -264,20 +265,20 @@ class PoseDetectorV2:
                 raise ValueError("未检测到完整人体，请重新拍摄全身照片。")
             image_points = result.pose_landmarks[0]
             world_points = result.pose_world_landmarks[0] if result.pose_world_landmarks else []
-            raw_mask = result.segmentation_masks[0].numpy_view() if result.segmentation_masks else None
+            raw_mask = result.segmentation_masks[0].numpy_view() if self.output_segmentation and result.segmentation_masks else None
         else:
             rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
             with mp.solutions.pose.Pose(
                 static_image_mode=True, model_complexity=2,
                 min_detection_confidence=0.65,
-                enable_segmentation=True,
+                enable_segmentation=self.output_segmentation,
             ) as pose:
                 result = pose.process(rgb)
             if not result.pose_landmarks:
                 raise ValueError("未检测到完整人体，请重新拍摄全身照片。")
             image_points = result.pose_landmarks.landmark
             world_points = result.pose_world_landmarks.landmark if result.pose_world_landmarks else []
-            raw_mask = result.segmentation_mask
+            raw_mask = result.segmentation_mask if self.output_segmentation else None
 
         landmarks = {name: _point(raw) for name, raw in zip(LANDMARK_NAMES, image_points)}
         world = {name: _point(raw) for name, raw in zip(LANDMARK_NAMES, world_points)}

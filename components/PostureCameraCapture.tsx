@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Language, PostureView } from '../types';
+import { compressCanvas } from '../services/imageUtils';
 
 interface Props {
   open: boolean;
@@ -80,13 +81,13 @@ const PostureCameraCapture: React.FC<Props> = ({ open, view, lang, onClose, onCa
     if (!isLevel) return;
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
-    const maxWidth = 1920;
-    const scale = Math.min(1, maxWidth / video.videoWidth);
+    const maxDimension = 1800;
+    const scale = Math.min(1, maxDimension / Math.max(video.videoWidth, video.videoHeight));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(video.videoWidth * scale);
     canvas.height = Math.round(video.videoHeight * scale);
     canvas.getContext('2d')!.drawImage(video, 0, 0, canvas.width, canvas.height);
-    onCapture(canvas.toDataURL('image/jpeg', 0.9));
+    onCapture(compressCanvas(canvas, 0.78));
     onClose();
   };
 
