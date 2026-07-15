@@ -23,9 +23,31 @@ except Exception:
 
 app = Flask(__name__)
 if CORS is not None:
-    CORS(app)
+    allowed_origins = [
+        value.strip()
+        for value in os.environ.get(
+            "CORS_ORIGINS",
+            "https://www.ygfit.top,https://ygfit.top,http://localhost:3000,http://localhost:5173",
+        ).split(",")
+        if value.strip()
+    ]
+    CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
+
+app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH_MB", "30")) * 1024 * 1024
 
 DEFAULT_HEIGHT = float(os.environ.get("DEFAULT_HEIGHT_CM", 170))
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify(
+        {
+            "service": "YGFIT Posture API",
+            "status": "ok",
+            "version": "2.0.0",
+            "health": "/api/health",
+        }
+    )
 
 
 @app.before_request
@@ -309,13 +331,20 @@ def food_config():
 @app.route("/api/health", methods=["GET"])
 def health():
     deps = check_runtime_dependencies()
-    missing = [name for name, info in deps.items() if not info["ok"]]
+    required_modules = ("flask", "flask_cors", "numpy", "cv2", "mediapipe")
+    missing_required = [name for name in required_modules if not deps[name]["ok"]]
+    model_path = os.environ.get("POSE_LANDMARKER_MODEL", "")
+    model_available = bool(model_path and os.path.isfile(model_path))
     return jsonify(
         {
-            "status": "ok" if not missing else "degraded",
+            "status": "ok" if not missing_required else "degraded",
             "version": "2.0.0",
             "dependencies": deps,
-            "missing_dependencies": missing,
+            "missing_required_dependencies": missing_required,
+            "model": {
+                "tasks_heavy_configured": model_available,
+                "name": "pose_landmarker_heavy.task" if model_available else None,
+            },
             "pose_engines": {
                 "mediapipe": {
                     "available": deps["mediapipe"]["ok"] and deps["cv2"]["ok"],

@@ -21,6 +21,7 @@ venv/
 
 # Backend models (large files)
 backend/models/*.onnx
+backend/models/pose_landmarker/*.task
 
 # Editor directories and files
 .kiro/

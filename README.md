@@ -1,3 +1,14 @@
+---
+title: YGFIT Posture API
+emoji: 🧍
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+license: apache-2.0
+---
+
 # NeonFit Studio Manager
 
 专为健身房教练打造的一体化管理工具。融合会员训练追踪与 **标志点辅助摄影测量 V2**，支持证据照片、2.5D 骨架和 PDF 报告。V2 用于健身筛查与个人趋势，不是医学诊断或多相机三角测量。
