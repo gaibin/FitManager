@@ -43,13 +43,15 @@ export function getWorkoutSummary(workouts: Workout[]): WorkoutSummary {
 }
 
 export function getAvailableExercises(workouts: Workout[], metric: WorkoutChartMetric): string[] {
-  const names = new Set<string>();
+  const counts = new Map<string, number>();
   workouts.forEach(workout => {
     if (!isWorkoutCompleted(workout)) return;
     if (metric !== 'sets' && workout.weight <= 0) return;
-    names.add(workout.exercise);
+    counts.set(workout.exercise, (counts.get(workout.exercise) ?? 0) + 1);
   });
-  return Array.from(names).sort((a, b) => a.localeCompare(b));
+  return Array.from(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name]) => name);
 }
 
 export function buildWorkoutChartData(

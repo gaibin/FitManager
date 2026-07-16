@@ -118,8 +118,9 @@ const HistoryChart: React.FC<HistoryChartProps> = ({ workouts, lang }) => {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F2F2F7" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: '#6E6E73', fontSize: 11 }} tickLine={false} axisLine={false} />
+              <XAxis dataKey="date" tick={{ fill: '#6E6E73', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={28} />
               <YAxis tick={{ fill: '#6E6E73', fontSize: 11 }} tickLine={false} axisLine={false} width={44}
+                domain={metric === 'weight' ? ['dataMin - 5', 'dataMax + 5'] : [0, 'auto']}
                 tickFormatter={value => Number(value).toLocaleString()} />
               <Tooltip
                 formatter={(value: any, name: any) => [
@@ -134,7 +135,7 @@ const HistoryChart: React.FC<HistoryChartProps> = ({ workouts, lang }) => {
               />
               {visibleExercises.map(exercise => (
                 <Line key={exercise} type="monotone" dataKey={exercise} name={exercise}
-                  stroke={colorMap[exercise]} strokeWidth={2.5}
+                  stroke={colorMap[exercise]} strokeWidth={2.5} connectNulls
                   dot={{ fill: '#fff', stroke: colorMap[exercise], strokeWidth: 2, r: 3 }}
                   activeDot={{ r: 5, fill: colorMap[exercise], stroke: '#fff', strokeWidth: 2 }} />
               ))}
