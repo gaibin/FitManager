@@ -139,7 +139,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {memberLoading && <p className="px-3 py-2 text-[11px] text-gray-400">{lang === 'zh' ? '正在加载会员…' : 'Loading members…'}</p>}
         <div className="relative mb-2">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" strokeWidth="2"/><path strokeLinecap="round" d="M21 21l-4.35-4.35" strokeWidth="2"/></svg>
-          <input type="search" name="member-list-filter" autoComplete="off" value={search} onChange={e => setSearch(e.target.value)}
+          <input type="search" name="ygfit-member-filter" autoComplete="one-time-code" data-1p-ignore="true" data-lpignore="true" data-form-type="other" value={search} onChange={e => setSearch(e.target.value)}
             placeholder={lang === 'zh' ? '\u641c\u7d22\u4f1a\u5458...' : 'Search members...'}
             className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-8 pr-3 py-2 text-xs text-gray-800 outline-none focus:border-[#007AFF]/30 transition-all" />
         </div>
@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">{user.username}</p>
-              <p className="text-[10px] text-gray-400">{user.role === 'admin' ? (lang === 'zh' ? '\u7ba1\u7406\u5458' : 'Admin') : (lang === 'zh' ? '\u4f1a\u5458' : 'Member')}</p>
+              <p className="text-[10px] text-gray-400">{user.role === 'member' ? (lang === 'zh' ? '\u4f1a\u5458' : 'Member') : (lang === 'zh' ? '\u6559\u7ec3' : 'Coach')}</p>
             </div>
             {onLogout && (
               <button onClick={onLogout} className="text-gray-400 hover:text-[#FF3B30] transition-colors p-1">

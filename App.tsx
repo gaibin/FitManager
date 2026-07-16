@@ -119,7 +119,7 @@ const AppContent: React.FC<AppContentProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-medium text-gray-400">
-              {user?.role === 'admin' ? (lang === 'zh' ? '管理员' : 'Admin') : (lang === 'zh' ? '会员' : 'Member')}: {user?.username}
+              {user?.role === 'member' ? (lang === 'zh' ? '会员' : 'Member') : (lang === 'zh' ? '教练' : 'Coach')}: {user?.username}
             </span>
             <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')}
               className="text-[11px] font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-500 hover:text-gray-800 hover:bg-gray-200 transition-all">
