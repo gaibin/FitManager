@@ -5,7 +5,7 @@
 
 import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { HashRouter, useNavigate, useLocation } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import Sidebar, { NAV_ITEMS } from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import PostureAssess from './components/PostureAssess';
 import LoginPage from './components/LoginPage';
@@ -73,9 +73,15 @@ const AppContent: React.FC<AppContentProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const selectedMember = members.find(m => m.id === selectedMemberId);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen overflow-hidden font-sans" style={{ backgroundColor: '#f5f5f7' }}>
+    <div className="flex h-[100dvh] min-h-0 overflow-hidden font-sans" style={{ backgroundColor: '#f5f5f7' }}>
+      {mobileMenuOpen && (
+        <button type="button" aria-label={lang === 'zh' ? '关闭菜单遮罩' : 'Close menu overlay'}
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-gray-950/30 backdrop-blur-[2px] lg:hidden" />
+      )}
       <Sidebar
         members={members}
         selectedMemberId={selectedMemberId}
@@ -90,10 +96,12 @@ const AppContent: React.FC<AppContentProps> = ({
         onLogout={handleLogout}
         currentPath={location.pathname}
         onNavigate={(path) => navigate(path)}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header className="glass h-16 border-b border-black/[0.04] flex justify-between items-center px-6 md:px-8 z-10 shrink-0">
+      <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="glass hidden h-16 shrink-0 items-center justify-between border-b border-black/[0.04] px-8 lg:flex">
           <div className="flex items-center space-x-4">
             {studioBrand.logo && <img src={studioBrand.logo} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />}
             {editingName ? (
@@ -124,7 +132,27 @@ const AppContent: React.FC<AppContentProps> = ({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-5 md:p-8 space-y-6">
+        <header className="glass z-20 flex min-h-16 shrink-0 items-center gap-3 border-b border-black/[0.05] px-3 sm:px-5 lg:hidden"
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <button type="button" onClick={() => setMobileMenuOpen(true)}
+            aria-label={lang === 'zh' ? '打开会员和菜单' : 'Open members and menu'}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-black/[0.05] bg-white text-gray-700 shadow-sm">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+          <button type="button" onClick={() => setMobileMenuOpen(true)} className="min-w-0 flex-1 text-left">
+            <p className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[#5856D6]">{studioName}</p>
+            <p className="truncate text-sm font-extrabold text-gray-900">{selectedMember?.name || (lang === 'zh' ? '选择会员' : 'Select member')}</p>
+          </button>
+          <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')}
+            className="rounded-full bg-gray-100 px-3 py-2 text-[11px] font-bold text-gray-600">
+            {lang === 'en' ? '中文' : 'EN'}
+          </button>
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#5856D6] to-[#007AFF] text-[11px] font-black text-white">
+            {user?.username?.[0]?.toUpperCase() || 'Y'}
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto overscroll-contain p-3 pb-24 sm:p-5 sm:pb-24 lg:p-8 lg:pb-8 space-y-6">
           {/* 全部页面保持挂载，避免切换时丢失状态 */}
           <div style={{ display: location.pathname === '/' ? 'block' : 'none' }} className="animate-in">
             {selectedMember ? (
@@ -189,6 +217,21 @@ const AppContent: React.FC<AppContentProps> = ({
             </Suspense>
           </div>
         </main>
+
+        <nav aria-label={lang === 'zh' ? '移动端主导航' : 'Mobile navigation'}
+          className="glass fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-black/[0.07] px-2 pt-2 shadow-[0_-10px_35px_rgba(20,20,35,0.08)] lg:hidden"
+          style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+          {NAV_ITEMS.map(item => {
+            const active = location.pathname === item.path;
+            return (
+              <button key={item.path} type="button" onClick={() => navigate(item.path)}
+                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-bold transition ${active ? 'bg-[#007AFF]/8 text-[#007AFF]' : 'text-gray-400'}`}>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} viewBox="0 0 24 24"><path d={item.icon} /></svg>
+                <span>{lang === 'zh' ? item.labelZh : item.labelEn}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

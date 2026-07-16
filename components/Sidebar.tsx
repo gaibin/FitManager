@@ -16,9 +16,11 @@ interface SidebarProps {
   onLogout?: () => void;
   currentPath?: string;
   onNavigate?: (path: string) => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { path: '/', icon: 'M3 10h4v11H3V10zm7-7h4v18h-4V3zm7 4h4v14h-4V7z', labelEn: 'Dashboard', labelZh: '仪表盘' },
   { path: '/posture', icon: 'M12 7a4 4 0 100-8 4 4 0 000 8zm-7 14c0-3.86 3.14-7 7-7s7 3.14 7 7', labelEn: 'Posture', labelZh: '体态评估' },
   { path: '/report', icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5V8H9l4-4.5z', labelEn: 'Report', labelZh: '报告导出' },
@@ -29,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   members, selectedMemberId, onSelectMember, onAddMember, onDeleteMember,
   memberLoadError, memberLoading, onRetryMembers,
   lang, user, onLogout, currentPath = '/', onNavigate,
+  mobileOpen = false, onMobileClose,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -69,7 +72,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className="w-full md:w-72 h-full flex flex-col fixed md:relative z-20 overflow-hidden border-r border-black/5" style={{ background: 'rgba(250,250,252,0.85)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' }}>
+    <aside
+      aria-label={lang === 'zh' ? '主导航与会员列表' : 'Main navigation and members'}
+      className={`${mobileOpen ? 'flex' : 'hidden'} lg:flex fixed inset-y-0 left-0 z-50 h-[100dvh] w-[min(88vw,20rem)] flex-col overflow-hidden border-r border-black/5 shadow-2xl lg:relative lg:z-20 lg:h-full lg:w-72 lg:shadow-none`}
+      style={{ background: 'rgba(250,250,252,0.96)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' }}>
       <div className="px-7 pt-7 pb-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}>
@@ -79,12 +85,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             <h1 className="text-base font-extrabold tracking-tight text-gray-800">NeonFit</h1>
             <p className="text-[10px] font-medium tracking-wider text-gray-400">STUDIO MANAGER</p>
           </div>
+          <button type="button" onClick={onMobileClose}
+            aria-label={lang === 'zh' ? '关闭菜单' : 'Close menu'}
+            className="ml-auto grid h-9 w-9 place-items-center rounded-xl bg-black/[0.04] text-gray-500 lg:hidden">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18 18 6M6 6l12 12" /></svg>
+          </button>
         </div>
       </div>
 
       <nav className="px-4 space-y-0.5 mb-4">
         {NAV_ITEMS.map(item => (
-          <button key={item.path} onClick={() => onNavigate?.(item.path)}
+          <button key={item.path} onClick={() => { onNavigate?.(item.path); onMobileClose?.(); }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
               currentPath === item.path ? 'text-white shadow-sm scale-press' : 'text-gray-500 hover:text-gray-800 hover:bg-black/[0.03]'
             }`}
@@ -133,7 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-8 pr-3 py-2 text-xs text-gray-800 outline-none focus:border-[#007AFF]/30 transition-all" />
         </div>
         {filtered.map(m => (
-          <div key={m.id} onClick={() => { onSelectMember(m.id); onNavigate?.('/'); }}
+          <div key={m.id} onClick={() => { onSelectMember(m.id); onNavigate?.('/'); onMobileClose?.(); }}
             className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group ${
               selectedMemberId === m.id ? 'bg-[#007AFF]/8' : 'hover:bg-black/[0.03]'
             }`}>
@@ -175,7 +186,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </aside>
   );
 };
 
