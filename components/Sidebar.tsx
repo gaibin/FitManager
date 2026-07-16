@@ -13,7 +13,7 @@ interface SidebarProps {
   onRetryMembers?: () => void;
   lang: Language;
   user?: User | null;
-  onLogout?: () => void;
+  onLogout?: () => Promise<void>;
   currentPath?: string;
   onNavigate?: (path: string) => void;
   mobileOpen?: boolean;

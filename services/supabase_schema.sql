@@ -1,4 +1,6 @@
--- YGFIT Studio production schema.
+-- YGFIT Studio production schema (legacy bootstrap).
+-- For the current username/password + tenant-isolated trial, run this file
+-- first on a blank project, then run supabase_auth_tenant_migration.sql.
 -- Run this once in the new Supabase project's SQL Editor.
 --
 -- The current frontend still uses its legacy browser login rather than

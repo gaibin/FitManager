@@ -43,7 +43,7 @@ interface AppContentProps {
   setSelectedMemberId: React.Dispatch<React.SetStateAction<string | null>>;
   user: any;
   isAdmin: boolean;
-  handleLogout: () => void;
+  handleLogout: () => Promise<void>;
   handleAddMember: (name: string) => Promise<void>;
   handleDeleteMember: (id: string) => Promise<void>;
   handleSaveSession: (workouts: (Omit<Workout, 'id'> & { id?: string })[], mode: 'add' | 'edit') => Promise<void>;
@@ -238,11 +238,12 @@ const AppContent: React.FC<AppContentProps> = ({
 };
 
 const App: React.FC = () => {
-  const [lang, setLang] = useState<Language>('en');
+  const [lang, setLang] = useState<Language>('zh');
   const [studioName, setStudioName] = useState('NEONFIT STUDIO');
   const [studioBrand, setStudioBrand] = useState<{ logo?: string; coachName?: string; accentColor?: string }>({});
   const [editingName, setEditingName] = useState(false);
   const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
+  const auth = useAuth();
 
   // 加载已保存的品牌设置
   useEffect(() => {
@@ -255,12 +256,11 @@ const App: React.FC = () => {
         }
       } catch {}
     })();
-  }, []);
+  }, [auth.user?.id]);
 
   const undo = useUndo();
 
   // 自定义 hooks 替代原来散落在 App 中的状态
-  const auth = useAuth();
   const members = useMembers({
     db, isAdmin: auth.isAdmin, userId: auth.user?.memberId,
     onMemberDeleted: (m) => undo.pushUndo({
@@ -274,6 +274,17 @@ const App: React.FC = () => {
     selectedMemberId: members.selectedMemberId,
     setMembers: members.setMembers,
   });
+
+  if (auth.isLoading) {
+    return (
+      <div className="grid min-h-[100dvh] place-items-center bg-[#f5f5f7]">
+        <div className="flex items-center gap-3 text-sm font-semibold text-gray-400">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#007AFF]/20 border-t-[#007AFF]" />
+          正在安全连接…
+        </div>
+      </div>
+    );
+  }
 
   if (!auth.isLoggedIn) {
     return <LoginPage lang={lang} onLoginSuccess={auth.handleLoginSuccess} />;

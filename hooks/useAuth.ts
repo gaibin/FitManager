@@ -1,53 +1,45 @@
-/**
- * 认证状态管理 hook — 统一管理登录状态和用户角色
- * 解决原 isAdmin() 读 localStorage 与 React state 不同步的问题
- */
-
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { User } from '../types';
 import { getCurrentUser, logout } from '../services/authService';
 
-// 开发模式跳过登录（通过环境变量控制）
-const DEV_SKIP_AUTH = import.meta.env.DEV && import.meta.env.VITE_SKIP_AUTH !== 'false';
+const DEV_SKIP_AUTH = import.meta.env.DEV && import.meta.env.VITE_SKIP_AUTH === 'true';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 初始化：检查登录状态
   useEffect(() => {
+    let active = true;
     if (DEV_SKIP_AUTH) {
-      setUser({ id: 'dev', username: 'dev', role: 'admin' });
-      setIsLoggedIn(true);
-      return;
+      setUser({ id: 'dev', username: 'dev', role: 'platform_admin' });
+      setIsLoading(false);
+      return () => { active = false; };
     }
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      setIsLoggedIn(true);
-    }
+
+    void getCurrentUser()
+      .then((currentUser) => { if (active) setUser(currentUser); })
+      .catch((error) => console.error('[Auth] Session restore failed', error))
+      .finally(() => { if (active) setIsLoading(false); });
+
+    return () => { active = false; };
   }, []);
 
-  const handleLogout = useCallback(() => {
-    logout();
+  const handleLogout = useCallback(async () => {
+    await logout();
     setUser(null);
-    setIsLoggedIn(false);
   }, []);
 
-  const handleLoginSuccess = useCallback(() => {
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      setIsLoggedIn(true);
-    }
+  const handleLoginSuccess = useCallback((authenticatedUser: User) => {
+    setUser(authenticatedUser);
+    setIsLoading(false);
   }, []);
 
   return {
     user,
     setUser,
-    isLoggedIn,
-    setIsLoggedIn,
-    isAdmin: DEV_SKIP_AUTH || user?.role === 'admin',
+    isLoggedIn: Boolean(user),
+    isLoading,
+    isAdmin: DEV_SKIP_AUTH || user?.role === 'platform_admin' || user?.role === 'coach',
     handleLogout,
     handleLoginSuccess,
   };

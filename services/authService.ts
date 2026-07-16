@@ -1,94 +1,122 @@
-import { getSupabaseClient } from './supabaseClient';
+import type { Session } from '@supabase/supabase-js';
 import type { User, UserRole } from '../types';
+import { getSupabaseClient } from './supabaseClient';
 
-/**
- * 简单的身份验证服务
- * 使用 Supabase 的 users 表存储用户名、密码哈希和角色
- * 
- * 表结构（需要在 Supabase 创建）:
- * CREATE TABLE users (
- *   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
- *   username text UNIQUE NOT NULL,
- *   password_hash text NOT NULL,
- *   role text NOT NULL CHECK (role IN ('admin', 'member')),
- *   member_id uuid REFERENCES members(id),
- *   created_at timestamp DEFAULT now()
- * );
- */
+export type RegistrationRole = 'coach' | 'member';
 
-// 简单的密码哈希（生产环境建议用 bcrypt，这里为了快速实现用简单哈希）
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+const ACCOUNT_DOMAIN = 'accounts.ygfit.local';
+
+function normalizeUsername(username: string): string {
+  return username.trim().normalize('NFKC').toLocaleLowerCase('zh-CN');
+}
+
+export function validateCredentials(username: string, password: string): string | null {
+  const normalized = normalizeUsername(username);
+  if (normalized.length < 3 || normalized.length > 24) return '账号需为 3–24 个字符';
+  if (/\s/.test(normalized)) return '账号不能包含空格';
+  if (password.length < 8) return '密码至少需要 8 位';
+  if (password.length > 72) return '密码不能超过 72 位';
+  return null;
+}
+
+export async function usernameToInternalEmail(username: string): Promise<string> {
+  const normalized = normalizeUsername(username);
+  const bytes = new TextEncoder().encode(normalized);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const hash = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 48);
+  return `u-${hash}@${ACCOUNT_DOMAIN}`;
+}
+
+function friendlyAuthError(message: string, mode: 'login' | 'register'): string {
+  const text = message.toLowerCase();
+  if (text.includes('invalid login credentials')) return '账号或密码错误';
+  if (text.includes('already registered') || text.includes('already exists')) return '这个账号已被注册';
+  if (text.includes('password')) return mode === 'register' ? '密码不符合要求，请至少输入 8 位' : '账号或密码错误';
+  if (text.includes('rate limit')) return '尝试次数过多，请稍后再试';
+  return mode === 'register' ? '注册失败，请稍后重试' : '登录失败，请稍后重试';
+}
+
+async function profileForSession(session: Session): Promise<User> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, role, studio_id, member_id')
+    .eq('id', session.user.id)
+    .single();
+
+  if (error || !data) throw new Error('账号资料尚未创建，请刷新页面或联系管理员');
+
+  return {
+    id: data.id,
+    username: data.username,
+    role: data.role as UserRole,
+    studioId: data.studio_id || undefined,
+    memberId: data.member_id || undefined,
+  };
+}
+
+export async function register(
+  username: string,
+  password: string,
+  role: RegistrationRole,
+): Promise<{ user: User | null; error: string | null }> {
+  const validationError = validateCredentials(username, password);
+  if (validationError) return { user: null, error: validationError };
+
+  try {
+    const supabase = getSupabaseClient();
+    const normalized = normalizeUsername(username);
+    const email = await usernameToInternalEmail(normalized);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: username.trim().normalize('NFKC'),
+          username_normalized: normalized,
+          account_type: role,
+        },
+      },
+    });
+
+    if (error) return { user: null, error: friendlyAuthError(error.message, 'register') };
+    if (!data.session) return { user: null, error: '账号已创建，但自动登录尚未启用，请联系管理员' };
+    return { user: await profileForSession(data.session), error: null };
+  } catch (error) {
+    console.error('[Auth] Register error', error);
+    return { user: null, error: error instanceof Error ? error.message : '注册失败，请稍后重试' };
+  }
 }
 
 export async function login(
   username: string,
-  password: string
+  password: string,
 ): Promise<{ user: User | null; error: string | null }> {
+  const validationError = validateCredentials(username, password);
+  if (validationError) return { user: null, error: '账号或密码错误' };
+
   try {
     const supabase = getSupabaseClient();
-    const passwordHash = await hashPassword(password);
-
-    // 查询用户
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .eq('password_hash', passwordHash)
-      .single();
-
-    if (error || !data) {
-      return {
-        user: null,
-        error: '用户名或密码错误',
-      };
-    }
-
-    const user: User = {
-      id: data.id,
-      username: data.username,
-      role: data.role as UserRole,
-      memberId: data.member_id || undefined,
-    };
-
-    // 保存到 localStorage
-    localStorage.setItem('auth_user', JSON.stringify(user));
-    localStorage.setItem('auth_token', data.id); // 简单 token
-
-    return { user, error: null };
-  } catch (err) {
-    console.error('[Auth] Login error', err);
-    return {
-      user: null,
-      error: '登录失败，请稍后重试',
-    };
+    const email = await usernameToInternalEmail(username);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.session) return { user: null, error: friendlyAuthError(error?.message || '', 'login') };
+    return { user: await profileForSession(data.session), error: null };
+  } catch (error) {
+    console.error('[Auth] Login error', error);
+    return { user: null, error: error instanceof Error ? error.message : '登录失败，请稍后重试' };
   }
 }
 
-export function logout(): void {
-  localStorage.removeItem('auth_user');
-  localStorage.removeItem('auth_token');
+export async function getCurrentUser(): Promise<User | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session) return null;
+  return profileForSession(data.session);
 }
 
-export function getCurrentUser(): User | null {
-  try {
-    const userStr = localStorage.getItem('auth_user');
-    if (!userStr) return null;
-    return JSON.parse(userStr) as User;
-  } catch {
-    return null;
-  }
-}
-
-export function isAuthenticated(): boolean {
-  return getCurrentUser() !== null;
-}
-
-export function isAdmin(): boolean {
-  const user = getCurrentUser();
-  return user?.role === 'admin';
+export async function logout(): Promise<void> {
+  await getSupabaseClient().auth.signOut();
 }

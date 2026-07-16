@@ -23,6 +23,19 @@ import type { Member, PostureAssessment, Workout } from '../types';
  */
 
 class CloudDatabase {
+  private async getStudioId(): Promise<string> {
+    const supabase = getSupabaseClient();
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) throw new Error('登录状态已失效，请重新登录');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('studio_id')
+      .eq('id', authData.user.id)
+      .single();
+    if (error || !data?.studio_id) throw new Error('无法确定当前工作区');
+    return data.studio_id;
+  }
+
   // --- Members ---
 
   async getMembers(): Promise<Member[]> {
@@ -105,6 +118,7 @@ class CloudDatabase {
     }
   ): Promise<Member> {
     const supabase = getSupabaseClient();
+    const studioId = await this.getStudioId();
     const joinDate = options?.joinDate || new Date().toISOString().split('T')[0];
     const avatar =
       options?.avatar ||
@@ -116,6 +130,7 @@ class CloudDatabase {
     const { data, error } = await supabase
       .from('members')
       .insert({
+        studio_id: studioId,
         name,
         avatar,
         join_date: joinDate,
@@ -321,11 +336,13 @@ class CloudDatabase {
 
   private async saveConfig(key: string, value: any): Promise<void> {
     const supabase = getSupabaseClient();
+    const studioId = await this.getStudioId();
     const { error } = await supabase.from('app_configs').upsert({
+      studio_id: studioId,
       key,
       value,
       updated_at: new Date().toISOString(),
-    });
+    }, { onConflict: 'studio_id,key' });
     if (error) {
       console.error(`[Supabase] saveConfig ${key} error`, error);
       throw new Error(`Failed to save ${key}`);
@@ -334,9 +351,11 @@ class CloudDatabase {
 
   private async getConfig(key: string): Promise<any | null> {
     const supabase = getSupabaseClient();
+    const studioId = await this.getStudioId();
     const { data, error } = await supabase
       .from('app_configs')
       .select('value')
+      .eq('studio_id', studioId)
       .eq('key', key)
       .maybeSingle();
     if (error) {

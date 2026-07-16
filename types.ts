@@ -1,11 +1,12 @@
 export type Language = 'en' | 'zh';
 
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'platform_admin' | 'coach' | 'member';
 
 export interface User {
   id: string;
   username: string;
   role: UserRole;
+  studioId?: string;
   memberId?: string; // 如果是会员，关联到 members.id
 }
 
