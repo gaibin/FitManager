@@ -26,7 +26,8 @@ interface PostureAssessProps {
   memberName: string;
   heightCm: number;
   gender: 'male' | 'female';
-  onSaveAssessment: (assessment: PostureAssessment) => Promise<void>;
+  onSaveAssessment: (memberId: string, assessment: PostureAssessment) => Promise<void>;
+  onDraftChange?: (memberId: string, assessment: PostureAssessment | null) => void;
   previousAssessment?: PostureAssessment;
 }
 
@@ -245,7 +246,7 @@ const TrainingPrescriptionPanel: React.FC<TrainingPrescriptionPanelProps> = ({
 };
 
 const PostureAssess: React.FC<PostureAssessProps> = ({
-  lang, memberId, memberName, heightCm, gender, onSaveAssessment, previousAssessment,
+  lang, memberId, memberName, heightCm, gender, onSaveAssessment, onDraftChange, previousAssessment,
 }) => {
   const [images, setImages] = useState<Record<PostureView, string | null>>({ front: null, side: null, back: null });
   const [imageSource, setImageSource] = useState<Record<PostureView, 'guided' | 'upload' | null>>({ front: null, side: null, back: null });
@@ -264,19 +265,29 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
   const [saved, setSaved] = useState(false);
   const fileInputRefs = useRef<Partial<Record<PostureView, HTMLInputElement | null>>>({});
   const autoPlanRefreshAttempts = useRef(0);
+  const analysisRequestId = useRef(0);
+  const activeMemberId = useRef(memberId);
+  const assessmentId = useRef<string>(
+    crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+  );
 
   useEffect(() => {
+    activeMemberId.current = memberId;
+    analysisRequestId.current += 1;
+    assessmentId.current = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
     setImages({ front: null, side: null, back: null });
     setImageSource({ front: null, side: null, back: null });
     setHeight(heightCm);
     setProtocolAcknowledged(false);
     setQuestionnaire(EMPTY_QUESTIONNAIRE);
     setData(null); setError(''); setCoachApproved(false); setSaved(false);
+    onDraftChange?.(memberId, null);
     autoPlanRefreshAttempts.current = 0;
-  }, [memberId, heightCm]);
+  }, [memberId, heightCm, onDraftChange]);
 
   const resetResult = () => {
     setData(null); setCoachApproved(false); setSaved(false); setActiveMeasurementId(null);
+    onDraftChange?.(memberId, null);
     autoPlanRefreshAttempts.current = 0;
   };
 
@@ -288,16 +299,18 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
   };
 
   const handleFileChange = useCallback(async (view: PostureView, file: File) => {
+    const uploadMemberId = memberId;
     const validationError = validateImage(file);
     if (validationError) { setError(validationError); return; }
     try {
       const compressed = await compressImage(file);
+      if (uploadMemberId !== activeMemberId.current) return;
       setCapturedImage(view, compressed, 'upload');
       setError('');
     } catch {
       setError(lang === 'zh' ? '图片处理失败，请重试。' : 'Image processing failed.');
     }
-  }, [lang]);
+  }, [lang, memberId]);
 
   const captureMode: 'guided' | 'upload' = useMemo(() => {
     const used = PHOTO_TYPES.filter(item => images[item.key]).map(item => imageSource[item.key]);
@@ -313,6 +326,8 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
       setError(lang === 'zh' ? '至少需要正面和侧面照片。' : 'Front and side photos are required.');
       return;
     }
+    const requestId = ++analysisRequestId.current;
+    const requestMemberId = memberId;
     setAnalyzing(true); setError(''); resetResult();
     try {
       setStage(lang === 'zh' ? '检测关键点与标志点…' : 'Detecting landmarks and markers…');
@@ -321,13 +336,17 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
         backImage: images.back || undefined, heightCm: height,
         captureMode, protocolAcknowledged, questionnaire, previousAssessment,
       });
+      if (requestId !== analysisRequestId.current || requestMemberId !== activeMemberId.current) return;
       setData(result);
       setActiveMeasurementId(result.measurements[0]?.id || null);
       setEvidenceView(result.measurements[0]?.view || 'front');
     } catch (caught: any) {
+      if (requestId !== analysisRequestId.current || requestMemberId !== activeMemberId.current) return;
       setError(caught?.message || (lang === 'zh' ? '分析失败，请检查后端。' : 'Analysis failed.'));
     } finally {
-      setAnalyzing(false); setStage('');
+      if (requestId === analysisRequestId.current && requestMemberId === activeMemberId.current) {
+        setAnalyzing(false); setStage('');
+      }
     }
   };
 
@@ -355,16 +374,22 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
 
   const handleRecompute = async () => {
     if (!data) return;
+    const requestId = ++analysisRequestId.current;
+    const requestMemberId = memberId;
     setAnalyzing(true); setStage(lang === 'zh' ? '根据复核节点重新计算…' : 'Recomputing reviewed landmarks…'); setError('');
     try {
       const result = await recomputePostureV2({
         views: data.views, heightCm: height, questionnaire, previousAssessment,
       });
+      if (requestId !== analysisRequestId.current || requestMemberId !== activeMemberId.current) return;
       setData(result); setEditMode(false); setCoachApproved(false);
     } catch (caught: any) {
+      if (requestId !== analysisRequestId.current || requestMemberId !== activeMemberId.current) return;
       setError(caught?.message || '节点复核计算失败');
     } finally {
-      setAnalyzing(false); setStage('');
+      if (requestId === analysisRequestId.current && requestMemberId === activeMemberId.current) {
+        setAnalyzing(false); setStage('');
+      }
     }
   };
 
@@ -380,12 +405,18 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
     return () => window.clearTimeout(retry);
   }, [data, analyzing]);
 
-  const handleSave = async () => {
-    if (!data || !images.front || !images.side || !coachApproved) return;
+  const buildAssessment = useCallback((approved: boolean): PostureAssessment | null => {
+    if (!data || !images.front || !images.side) return null;
     const issues = data.measurements.map(issueFromMeasurement);
-    const recommendation = { ...data.recommendation, approved: true, status: data.recommendation.status === 'draft' ? 'approved' as const : data.recommendation.status };
-    const assessment: PostureAssessment = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+    const recommendation = {
+      ...data.recommendation,
+      approved,
+      status: approved && data.recommendation.status === 'draft'
+        ? 'approved' as const
+        : data.recommendation.status,
+    };
+    return {
+      id: assessmentId.current,
       date: new Date().toISOString().split('T')[0],
       schemaVersion: 2,
       protocolVersion: data.protocolVersion,
@@ -411,8 +442,20 @@ const PostureAssess: React.FC<PostureAssessProps> = ({
       recommendation,
       audit: data.audit,
     };
+  }, [data, images, lang, questionnaire]);
+
+  useEffect(() => {
+    if (!data) return;
+    onDraftChange?.(memberId, buildAssessment(coachApproved));
+  }, [buildAssessment, coachApproved, data, memberId, onDraftChange]);
+
+  const handleSave = async () => {
+    if (!coachApproved) return;
+    const assessment = buildAssessment(true);
+    if (!assessment) return;
     try {
-      await onSaveAssessment(assessment);
+      await onSaveAssessment(memberId, assessment);
+      onDraftChange?.(memberId, assessment);
       setSaved(true);
     } catch (caught: any) {
       setError(caught?.message || (lang === 'zh' ? '保存失败。' : 'Save failed.'));

@@ -100,23 +100,23 @@ export function useWorkouts({ db, selectedMemberId, setMembers }: UseWorkoutsOpt
     setMembers(prev => prev.map(m => m.id === selectedMemberId ? { ...m, photoUrl: base64 } : m));
   }, [db, selectedMemberId, setMembers]);
 
-  const handleSaveAssessment = useCallback(async (assessment: PostureAssessment) => {
-    if (!selectedMemberId) return;
-    await db.saveAssessment(selectedMemberId, assessment);
+  const handleSaveAssessment = useCallback(async (memberId: string, assessment: PostureAssessment) => {
+    await db.saveAssessment(memberId, assessment);
     setMembers(prev => prev.map(m => {
-      if (m.id === selectedMemberId) {
-        const existingIdx = m.assessments.findIndex((a: PostureAssessment) => a.date === assessment.date);
+      if (m.id === memberId) {
+        const existingIdx = m.assessments.findIndex((a: PostureAssessment) => a.id === assessment.id || a.date === assessment.date);
         const updated = [...m.assessments];
         if (existingIdx >= 0) {
           updated[existingIdx] = assessment;
         } else {
           updated.unshift(assessment);
         }
+        updated.sort((a, b) => b.date.localeCompare(a.date));
         return { ...m, assessments: updated };
       }
       return m;
     }));
-  }, [db, selectedMemberId, setMembers]);
+  }, [db, setMembers]);
 
   return {
     editingSession,
