@@ -16,7 +16,7 @@ import { useAuth } from './hooks/useAuth';
 import { useMembers } from './hooks/useMembers';
 import { useWorkouts } from './hooks/useWorkouts';
 import { useUndo } from './components/UndoProvider';
-import { Language, Workout } from './types';
+import { Language, PostureAssessment, Workout } from './types';
 import { TRANSLATIONS } from './constants';
 
 // 按需加载：Report 组件 + PDF 生成库（jsPDF/html2canvas）只在导出时加载
@@ -50,7 +50,7 @@ interface AppContentProps {
   handleUpdateWorkout: (workout: Workout) => Promise<void>;
   handleDeleteWorkout: (workoutId: string) => Promise<void>;
   handleUploadPhoto: (base64: string) => Promise<void>;
-  handleSaveAssessment: (assessment: any) => Promise<void>;
+  handleSaveAssessment: (memberId: string, assessment: PostureAssessment) => Promise<void>;
   filterMonth: string;
   setFilterMonth: React.Dispatch<React.SetStateAction<string>>;
   editingSession: { date: string; workouts: Workout[] } | null;
@@ -74,6 +74,28 @@ const AppContent: React.FC<AppContentProps> = ({
   const location = useLocation();
   const selectedMember = members.find(m => m.id === selectedMemberId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [assessmentDrafts, setAssessmentDrafts] = useState<Record<string, PostureAssessment>>({});
+  const handleAssessmentDraftChange = React.useCallback((memberId: string, assessment: PostureAssessment | null) => {
+    setAssessmentDrafts(previous => {
+      if (assessment) return { ...previous, [memberId]: assessment };
+      if (!previous[memberId]) return previous;
+      const next = { ...previous };
+      delete next[memberId];
+      return next;
+    });
+  }, []);
+  const selectedDraft = selectedMemberId ? assessmentDrafts[selectedMemberId] : undefined;
+  const reportMember = selectedMember && selectedDraft
+    ? {
+        ...selectedMember,
+        assessments: [
+          selectedDraft,
+          ...selectedMember.assessments.filter(
+            (item: PostureAssessment) => item.id !== selectedDraft.id && item.date !== selectedDraft.date,
+          ),
+        ],
+      }
+    : selectedMember;
 
   return (
     <div className="flex h-[100dvh] min-h-0 overflow-hidden font-sans" style={{ backgroundColor: '#f5f5f7' }}>
@@ -178,7 +200,8 @@ const AppContent: React.FC<AppContentProps> = ({
                 lang={lang} memberId={selectedMember.id} memberName={selectedMember.name}
                 heightCm={selectedMember.heightCm} gender={selectedMember.gender}
                 onSaveAssessment={handleSaveAssessment}
-                previousAssessment={selectedMember.assessments?.[1]}
+                onDraftChange={handleAssessmentDraftChange}
+                previousAssessment={selectedMember.assessments?.[0]}
               />
             ) : (
               <div className="flex h-full items-center justify-center">
@@ -195,8 +218,8 @@ const AppContent: React.FC<AppContentProps> = ({
                 </div>
               </div>
             }>
-              {selectedMember ? (
-                <MemberReport lang={lang} member={selectedMember} studioName={studioName} studioBrand={studioBrand} />
+              {reportMember ? (
+                <MemberReport lang={lang} member={reportMember} studioName={studioName} studioBrand={studioBrand} />
               ) : (
                 <div className="flex h-full items-center justify-center">
                   <div className="text-base font-semibold text-gray-400">{TRANSLATIONS.selectMember[lang]}</div>
