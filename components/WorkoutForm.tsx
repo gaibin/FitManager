@@ -12,6 +12,7 @@ interface WorkoutFormProps {
   onSaveSession: (workouts: WorkoutDraft[], mode: 'add' | 'edit') => void;
   initialDate?: string;
   initialWorkouts?: Workout[];
+  initialBodyWeightKg?: number;
   onCancelEdit?: () => void;
 }
 
@@ -24,11 +25,16 @@ const durationLabel = (seconds?: number) => {
 };
 
 const WorkoutForm: React.FC<WorkoutFormProps> = ({
-  lang, onSaveSession, initialDate, initialWorkouts, onCancelEdit,
+  lang, onSaveSession, initialDate, initialWorkouts, initialBodyWeightKg, onCancelEdit,
 }) => {
   const today = new Date().toISOString().split('T')[0];
   const [session, setSession] = useState<WorkoutDraft[]>(initialWorkouts || []);
   const [date, setDate] = useState(initialDate || today);
+  const [bodyWeightKg, setBodyWeightKg] = useState(
+    initialWorkouts?.find(item => item.bodyWeightKg != null)?.bodyWeightKg?.toString()
+      || initialBodyWeightKg?.toString()
+      || '',
+  );
   const [exName, setExName] = useState('');
   const [weight, setWeight] = useState('');
   const [sets, setSets] = useState('');
@@ -50,8 +56,14 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
     if (initialDate && initialWorkouts) {
       setDate(initialDate);
       setSession(initialWorkouts);
+      setBodyWeightKg(
+        initialWorkouts.find(item => item.bodyWeightKg != null)?.bodyWeightKg?.toString()
+          || initialBodyWeightKg?.toString()
+          || '',
+      );
     }
-  }, [initialDate, initialWorkouts]);
+    if (!initialDate) setBodyWeightKg(initialBodyWeightKg?.toString() || '');
+  }, [initialBodyWeightKg, initialDate, initialWorkouts]);
 
   useEffect(() => {
     if (exName.length < 1) {
@@ -115,7 +127,15 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
       setValidation(lang === 'zh' ? '请至少添加一个训练动作' : 'Add at least one exercise');
       return;
     }
-    onSaveSession(session.map(item => ({ ...item, date })), isEditing ? 'edit' : 'add');
+    const parsedBodyWeight = bodyWeightKg ? Number(bodyWeightKg) : undefined;
+    if (parsedBodyWeight != null && (!Number.isFinite(parsedBodyWeight) || parsedBodyWeight < 25 || parsedBodyWeight > 300)) {
+      setValidation(lang === 'zh' ? '当天体重请输入 25–300 kg' : 'Enter body weight between 25 and 300 kg');
+      return;
+    }
+    onSaveSession(
+      session.map(item => ({ ...item, date, bodyWeightKg: parsedBodyWeight })),
+      isEditing ? 'edit' : 'add',
+    );
     if (!isEditing) setSession([]);
   };
 
@@ -164,10 +184,21 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
         )}
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <label className="text-xs font-semibold text-gray-500 shrink-0">{TRANSLATIONS.sessionDate[lang]}</label>
-        <input type="date" value={date} onChange={event => setDate(event.target.value)}
-          className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#007AFF]/30 focus:ring-2 focus:ring-[#007AFF]/10 flex-1 transition-all" />
+      <div className="grid grid-cols-1 gap-2 mb-4 sm:grid-cols-2">
+        <label className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-gray-500 shrink-0">{TRANSLATIONS.sessionDate[lang]}</span>
+          <input type="date" value={date} onChange={event => setDate(event.target.value)}
+            className="min-w-0 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#007AFF]/30 focus:ring-2 focus:ring-[#007AFF]/10 flex-1 transition-all" />
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-gray-500 shrink-0">{lang === 'zh' ? '当天体重' : 'Body weight'}</span>
+          <div className="relative flex-1">
+            <input type="number" min="25" max="300" step="0.1" value={bodyWeightKg} onChange={event => setBodyWeightKg(event.target.value)}
+              placeholder={lang === 'zh' ? '可选' : 'Optional'}
+              className="w-full bg-[#34C759]/5 border border-[#34C759]/15 rounded-xl px-3 py-2 pr-9 text-xs text-gray-800 outline-none focus:border-[#34C759]/40 focus:ring-2 focus:ring-[#34C759]/10 transition-all" />
+            <span className="absolute right-3 top-2 text-[10px] text-gray-400">kg</span>
+          </div>
+        </label>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-12 gap-2 mb-2">

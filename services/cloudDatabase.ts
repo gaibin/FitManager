@@ -84,6 +84,7 @@ class CloudDatabase {
         rpe: w.rpe == null ? undefined : Number(w.rpe),
         completed: w.completed == null ? undefined : Boolean(w.completed),
         note: w.note || undefined,
+        bodyWeightKg: w.body_weight_kg == null ? undefined : Number(w.body_weight_kg),
       });
     });
 
@@ -101,6 +102,7 @@ class CloudDatabase {
       joinDate: m.join_date,
       gender: m.gender || 'male',
       heightCm: m.height_cm || 170,
+      weightKg: m.weight_kg == null ? undefined : Number(m.weight_kg),
       workouts: workoutsByMember[m.id] || [],
       assessments: assessmentsByMember[m.id] || [],
       photoUrl: m.photo_url || undefined,
@@ -115,6 +117,7 @@ class CloudDatabase {
       photoUrl?: string;
       gender?: 'male' | 'female';
       heightCm?: number;
+      weightKg?: number;
     }
   ): Promise<Member> {
     const supabase = getSupabaseClient();
@@ -125,7 +128,8 @@ class CloudDatabase {
       `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
     const photoUrl = options?.photoUrl;
     const gender = options?.gender || 'male';
-    const heightCm = options?.heightCm || 170;
+    const heightCm = options?.heightCm;
+    const weightKg = options?.weightKg;
 
     const { data, error } = await supabase
       .from('members')
@@ -137,6 +141,7 @@ class CloudDatabase {
         photo_url: photoUrl,
         gender,
         height_cm: heightCm,
+        weight_kg: weightKg,
       })
       .select('*')
       .single();
@@ -154,6 +159,7 @@ class CloudDatabase {
       joinDate: data.join_date,
       gender: data.gender || 'male',
       heightCm: data.height_cm || 170,
+      weightKg: data.weight_kg == null ? undefined : Number(data.weight_kg),
       workouts: [],
       assessments: [],
       photoUrl: data.photo_url || undefined,
@@ -212,6 +218,7 @@ class CloudDatabase {
         rpe: w.rpe,
         completed: w.completed,
         note: w.note,
+        body_weight_kg: w.bodyWeightKg,
     }));
 
     const { data, error } = await supabase
@@ -235,6 +242,7 @@ class CloudDatabase {
         rpe: w.rpe == null ? undefined : Number(w.rpe),
         completed: w.completed == null ? undefined : Boolean(w.completed),
         note: w.note || undefined,
+        bodyWeightKg: w.body_weight_kg == null ? undefined : Number(w.body_weight_kg),
     }));
   }
 
@@ -252,6 +260,7 @@ class CloudDatabase {
         rpe: workout.rpe,
         completed: workout.completed,
         note: workout.note,
+        body_weight_kg: workout.bodyWeightKg,
       })
       .eq('id', workout.id)
       .eq('member_id', memberId);

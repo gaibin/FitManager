@@ -12,6 +12,7 @@ export const exportMemberHistory = (member: Member) => {
     Date: w.date,
     Exercise: w.exercise,
     Weight_KG: w.weight,
+    Body_Weight_KG: w.bodyWeightKg ?? '',
     Sets: w.sets,
     Reps: w.reps,
     Duration_Seconds: w.durationSeconds ?? '',

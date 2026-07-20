@@ -18,6 +18,7 @@ create table if not exists public.members (
   photo_url text,
   gender text not null default 'male' check (gender in ('male', 'female')),
   height_cm numeric not null default 170,
+  weight_kg numeric check (weight_kg is null or (weight_kg >= 25 and weight_kg <= 300)),
   created_at timestamptz not null default now()
 );
 
@@ -33,6 +34,7 @@ create table if not exists public.workouts (
   rpe numeric,
   completed boolean,
   note text,
+  body_weight_kg numeric check (body_weight_kg is null or (body_weight_kg >= 25 and body_weight_kg <= 300)),
   created_at timestamptz not null default now()
 );
 

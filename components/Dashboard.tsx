@@ -14,8 +14,10 @@ import AssessmentTrends from './AssessmentTrends';
 import PostureRadar from './PostureRadar';
 import MemberGoals from './MemberGoals';
 import CorrelationAnalysis from './CorrelationAnalysis';
+import BodyWeightTrend from './BodyWeightTrend';
 import { exportMemberHistory } from '../services/excelService';
 import { getWorkoutSummary, isWorkoutCompleted } from '../services/workoutAnalytics';
+import { getCurrentBodyWeight } from '../services/bodyWeightAnalytics';
 import { Member, Language, Workout, WellnessScore as WellnessScoreType } from '../types';
 import { TRANSLATIONS } from '../constants';
 
@@ -43,6 +45,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const monthlyCount = monthlySummary.sessionCount;
   const maxWeight = member.workouts.filter(isWorkoutCompleted).reduce((max, w) => w.weight > max ? w.weight : max, 0) || 0;
   const totalVolume = getWorkoutSummary(member.workouts).totalVolume;
+  const currentBodyWeight = getCurrentBodyWeight(member);
 
   // Additional rich metrics
   const prevMonth = new Date(new Date(filterMonth).setMonth(new Date(filterMonth).getMonth() - 1)).toISOString().slice(0, 7);
@@ -98,6 +101,11 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400">Overview</p>
           <h2 className="text-xl font-extrabold text-gray-800 mt-0.5">{member.name}</h2>
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-semibold text-gray-500">
+            <span className="rounded-full bg-white px-2.5 py-1 shadow-sm">{member.gender === 'male' ? (lang === 'zh' ? '男' : 'Male') : (lang === 'zh' ? '女' : 'Female')}</span>
+            <span className="rounded-full bg-white px-2.5 py-1 shadow-sm">{member.heightCm} cm</span>
+            <span className="rounded-full bg-[#34C759]/10 px-2.5 py-1 text-[#248A3D]">{currentBodyWeight != null ? `${currentBodyWeight.toFixed(1)} kg` : (lang === 'zh' ? '体重未录入' : 'Weight not recorded')}</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={handleExport}
@@ -184,8 +192,10 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-5">
           <HistoryChart workouts={member.workouts} lang={lang} />
+          <BodyWeightTrend member={member} lang={lang} />
           <WorkoutForm lang={lang} onSaveSession={onSaveSession}
             initialDate={editingSession?.date} initialWorkouts={editingSession?.workouts}
+            initialBodyWeightKg={currentBodyWeight}
             onCancelEdit={onCancelEdit} />
         </div>
         <div className="space-y-5">

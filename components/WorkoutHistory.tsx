@@ -42,12 +42,16 @@ const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({ workouts, lang, filterM
         {sessionsByDate.map(([date, ws]) => {
           const summary = getWorkoutSummary(ws);
           const totalVol = summary.totalVolume;
+          const bodyWeightKg = ws.find(item => item.bodyWeightKg != null)?.bodyWeightKg;
           return (
             <div key={date} className="group">
               <div className="flex items-center justify-between mb-1.5 px-1 cursor-pointer"
                 onClick={() => onEditSession?.(date, ws)}>
                 <span className="text-[11px] font-bold text-[#007AFF]">{date}</span>
                 <div className="flex items-center gap-2">
+                  {bodyWeightKg != null && (
+                    <span className="text-[10px] font-semibold text-[#248A3D] bg-[#34C759]/10 px-2 py-0.5 rounded-full">{bodyWeightKg.toFixed(1)} kg</span>
+                  )}
                   {summary.averageRpe != null && (
                     <span className="text-[10px] font-semibold text-[#C96D00] bg-[#FF9500]/10 px-2 py-0.5 rounded-full">RPE {summary.averageRpe.toFixed(1)}</span>
                   )}
