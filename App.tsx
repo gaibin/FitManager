@@ -7,6 +7,7 @@ import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { HashRouter, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar, { NAV_ITEMS } from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import MemberProfilePage from './components/MemberProfilePage';
 import PostureAssess from './components/PostureAssess';
 import LoginPage from './components/LoginPage';
 import { db as cloudDb } from './services/cloudDatabase';
@@ -204,6 +205,19 @@ const AppContent: React.FC<AppContentProps> = ({
                 onSaveAssessment={handleSaveAssessment}
                 onDraftChange={handleAssessmentDraftChange}
                 previousAssessment={selectedMember.assessments?.[0]}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-base font-semibold text-gray-400">{TRANSLATIONS.selectMember[lang]}</div>
+              </div>
+            )}
+          </div>
+          <div style={{ display: location.pathname === '/profile' ? 'block' : 'none' }} className="animate-in">
+            {selectedMember ? (
+              <MemberProfilePage
+                lang={lang}
+                member={selectedMember}
+                onUpdate={(profile) => handleUpdateMember(selectedMember.id, profile)}
               />
             ) : (
               <div className="flex h-full items-center justify-center">
