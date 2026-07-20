@@ -200,6 +200,25 @@ class CloudDatabase {
     }
   }
 
+  async updateMember(
+    memberId: string,
+    updates: Partial<Pick<Member, 'name' | 'gender' | 'heightCm' | 'weightKg' | 'avatar'>>
+  ): Promise<void> {
+    const supabase = getSupabaseClient();
+    const payload: Record<string, string | number | null> = {};
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.gender !== undefined) payload.gender = updates.gender;
+    if (updates.heightCm !== undefined) payload.height_cm = updates.heightCm;
+    if (updates.weightKg !== undefined) payload.weight_kg = updates.weightKg;
+    if (updates.avatar !== undefined) payload.avatar = updates.avatar;
+
+    const { data, error } = await supabase.from('members').update(payload).eq('id', memberId).select('id').single();
+    if (error || !data) {
+      console.error('[Supabase] updateMember error', error);
+      throw new Error(`保存会员资料失败：${error?.message || '未找到可修改的会员资料'}`);
+    }
+  }
+
   // --- Workouts ---
 
   async addWorkouts(

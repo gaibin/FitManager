@@ -45,6 +45,7 @@ interface AppContentProps {
   isAdmin: boolean;
   handleLogout: () => Promise<void>;
   handleAddMember: (profile: NewMemberProfile) => Promise<void>;
+  handleUpdateMember: (id: string, profile: NewMemberProfile) => Promise<void>;
   handleDeleteMember: (id: string) => Promise<void>;
   handleSaveSession: (workouts: (Omit<Workout, 'id'> & { id?: string })[], mode: 'add' | 'edit') => Promise<void>;
   handleUpdateWorkout: (workout: Workout) => Promise<void>;
@@ -64,7 +65,7 @@ const AppContent: React.FC<AppContentProps> = ({
   lang, setLang, studioName, setStudioName, studioBrand, setStudioBrand,
   editingName, setEditingName,
   members, selectedMemberId, setSelectedMemberId,
-  user, isAdmin, handleLogout, handleAddMember, handleDeleteMember,
+  user, isAdmin, handleLogout, handleAddMember, handleUpdateMember, handleDeleteMember,
   handleSaveSession, handleUpdateWorkout, handleDeleteWorkout,
   handleUploadPhoto, handleSaveAssessment, filterMonth, setFilterMonth,
   editingSession, setEditingSession,
@@ -184,6 +185,7 @@ const AppContent: React.FC<AppContentProps> = ({
                 onUpdateWorkout={isAdmin ? handleUpdateWorkout : async () => {}}
                 onDeleteWorkout={isAdmin ? handleDeleteWorkout : async () => {}}
                 onUploadPhoto={isAdmin ? handleUploadPhoto : async () => {}}
+                onUpdateMember={(profile) => handleUpdateMember(selectedMember.id, profile)}
                 editingSession={editingSession}
                 onEditSession={isAdmin ? (date, workouts) => setEditingSession({ date, workouts }) : () => {}}
                 onCancelEdit={() => setEditingSession(null)}
@@ -328,6 +330,7 @@ const App: React.FC = () => {
         isAdmin={auth.isAdmin}
         handleLogout={auth.handleLogout}
         handleAddMember={members.handleAddMember}
+        handleUpdateMember={members.handleUpdateMember}
         handleDeleteMember={members.handleDeleteMember}
         handleSaveSession={workouts.handleSaveSession}
         handleUpdateWorkout={workouts.handleUpdateWorkout}
