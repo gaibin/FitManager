@@ -18,7 +18,8 @@ import BodyWeightTrend from './BodyWeightTrend';
 import { exportMemberHistory } from '../services/excelService';
 import { getWorkoutSummary, isWorkoutCompleted } from '../services/workoutAnalytics';
 import { getCurrentBodyWeight } from '../services/bodyWeightAnalytics';
-import { Member, Language, Workout, WellnessScore as WellnessScoreType } from '../types';
+import { Member, Language, NewMemberProfile, Workout, WellnessScore as WellnessScoreType } from '../types';
+import MemberProfileEditor from './MemberProfileEditor';
 import { TRANSLATIONS } from '../constants';
 
 interface DashboardProps {
@@ -30,6 +31,7 @@ interface DashboardProps {
   onUpdateWorkout: (workout: Workout) => void;
   onDeleteWorkout: (workoutId: string) => void;
   onUploadPhoto: (base64: string) => void;
+  onUpdateMember: (profile: NewMemberProfile) => Promise<void>;
   editingSession: { date: string; workouts: Workout[] } | null;
   onEditSession: (date: string, workouts: Workout[]) => void;
   onCancelEdit: () => void;
@@ -38,7 +40,9 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({
   lang, member, filterMonth, onFilterMonthChange, onSaveSession, onUpdateWorkout,
   onDeleteWorkout, onUploadPhoto, editingSession, onEditSession, onCancelEdit,
+  onUpdateMember,
 }) => {
+  const [profileEditorOpen, setProfileEditorOpen] = React.useState(false);
   // Core metrics
   const monthlyWorkouts = member.workouts.filter(w => w.date.startsWith(filterMonth));
   const monthlySummary = getWorkoutSummary(monthlyWorkouts);
@@ -100,7 +104,13 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400">Overview</p>
-          <h2 className="text-xl font-extrabold text-gray-800 mt-0.5">{member.name}</h2>
+          <div className="mt-0.5 flex items-center gap-2">
+            <h2 className="text-xl font-extrabold text-gray-800">{member.name}</h2>
+            <button type="button" onClick={() => setProfileEditorOpen(true)}
+              className="rounded-lg bg-[#007AFF]/8 px-2.5 py-1 text-[11px] font-bold text-[#007AFF] transition hover:bg-[#007AFF]/15">
+              {lang === 'zh' ? '编辑资料' : 'Edit profile'}
+            </button>
+          </div>
           <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-semibold text-gray-500">
             <span className="rounded-full bg-white px-2.5 py-1 shadow-sm">{member.gender === 'male' ? (lang === 'zh' ? '男' : 'Male') : (lang === 'zh' ? '女' : 'Female')}</span>
             <span className="rounded-full bg-white px-2.5 py-1 shadow-sm">{member.heightCm} cm</span>
@@ -120,6 +130,15 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {profileEditorOpen && (
+        <MemberProfileEditor
+          member={member}
+          lang={lang}
+          onClose={() => setProfileEditorOpen(false)}
+          onSave={onUpdateMember}
+        />
+      )}
 
       {/* Metric Cards — 2 rows */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

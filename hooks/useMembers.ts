@@ -9,6 +9,7 @@ interface UseMembersOptions {
   db: {
     getMembers: () => Promise<Member[]>;
     addMember: (name: string, options?: Omit<NewMemberProfile, 'name'>) => Promise<Member>;
+    updateMember: (id: string, updates: NewMemberProfile) => Promise<void>;
     deleteMember: (id: string) => Promise<void>;
   };
   isAdmin: boolean;
@@ -63,6 +64,11 @@ export function useMembers({ db, isAdmin, userId, onMemberDeleted }: UseMembersO
     if (member && onMemberDeleted) onMemberDeleted(member);
   }, [db, members, onMemberDeleted]);
 
+  const handleUpdateMember = useCallback(async (id: string, profile: NewMemberProfile) => {
+    await db.updateMember(id, profile);
+    setMembers(prev => prev.map(member => member.id === id ? { ...member, ...profile } : member));
+  }, [db]);
+
   const selectedMember = members.find(m => m.id === selectedMemberId);
 
   return {
@@ -75,6 +81,7 @@ export function useMembers({ db, isAdmin, userId, onMemberDeleted }: UseMembersO
     isLoading,
     reload,
     handleAddMember,
+    handleUpdateMember,
     handleDeleteMember,
   };
 }
