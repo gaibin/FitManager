@@ -77,7 +77,7 @@ const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({ workouts, lang, filterM
                   {w.note && <span className="hidden xl:block max-w-24 truncate text-[10px] text-gray-400" title={w.note}>{w.note}</span>}
                   {onDeleteWorkout && (
                     <button onClick={(e) => { e.stopPropagation(); onDeleteWorkout(w.id); }}
-                      className="opacity-0 group-hover/item:opacity-100 text-gray-400 hover:text-[#FF3B30] transition-all p-0.5">
+                      className="p-1 text-gray-400 opacity-100 transition-all hover:text-[#FF3B30] sm:opacity-0 sm:group-hover/item:opacity-100">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                   )}

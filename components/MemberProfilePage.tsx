@@ -29,21 +29,21 @@ const MemberProfilePage: React.FC<MemberProfilePageProps> = ({ member, lang, onU
       </div>
 
       <section className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-black/[0.03]">
-        <div className="flex items-center gap-4 border-b border-black/[0.05] p-5 sm:p-7">
+        <div className="flex flex-wrap items-center gap-4 border-b border-black/[0.05] p-5 sm:flex-nowrap sm:p-7">
           <img src={member.avatar} alt={member.name} className="h-16 w-16 rounded-2xl object-cover ring-4 ring-gray-50" />
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-xl font-black text-gray-900">{member.name}</h3>
             <p className="mt-1 text-xs font-semibold text-gray-400">{zh ? `加入日期 ${member.joinDate}` : `Joined ${member.joinDate}`}</p>
           </div>
           <button type="button" onClick={() => setEditing(true)}
-            className="rounded-xl bg-[#007AFF] px-4 py-2.5 text-xs font-black text-white shadow-lg shadow-[#007AFF]/20 transition hover:bg-[#0066D6]">
+            className="w-full rounded-xl bg-[#007AFF] px-4 py-3 text-xs font-black text-white shadow-lg shadow-[#007AFF]/20 transition hover:bg-[#0066D6] sm:w-auto sm:py-2.5">
             {zh ? '修改资料' : 'Edit profile'}
           </button>
         </div>
 
         <div className="grid grid-cols-2 gap-px bg-gray-100 sm:grid-cols-4">
           {rows.map(row => (
-            <div key={row.label} className="bg-white p-5">
+            <div key={row.label} className="bg-white p-4 sm:p-5">
               <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">{row.label}</p>
               <p className="mt-2 text-base font-black text-gray-900">{row.value}</p>
             </div>
