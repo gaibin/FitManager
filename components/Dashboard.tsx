@@ -99,7 +99,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const handleExport = () => { exportMemberHistory(member); };
 
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-4 animate-in sm:space-y-6">
       {/* Header Row */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
@@ -117,16 +117,16 @@ const Dashboard: React.FC<DashboardProps> = ({
             <span className="rounded-full bg-[#34C759]/10 px-2.5 py-1 text-[#248A3D]">{currentBodyWeight != null ? `${currentBodyWeight.toFixed(1)} kg` : (lang === 'zh' ? '体重未录入' : 'Weight not recorded')}</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-3">
           <button onClick={handleExport}
-            className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-all">
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 px-3 py-2 text-[11px] font-semibold text-gray-500 transition-all hover:bg-gray-200 hover:text-gray-800">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             {TRANSLATIONS.exportData[lang]}
           </button>
-          <div className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-xl">
+          <div className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 px-3 py-2">
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" strokeWidth="2"/></svg>
             <input type="month" value={filterMonth} onChange={e => onFilterMonthChange(e.target.value)}
-              className="bg-transparent text-gray-700 text-xs font-medium outline-none w-[120px]" />
+              className="min-w-0 flex-1 bg-transparent text-xs font-medium text-gray-700 outline-none sm:w-[120px]" />
           </div>
         </div>
       </div>
@@ -141,7 +141,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {/* Metric Cards — 2 rows */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
         <MetricCard label={TRANSLATIONS.monthlyWorkouts[lang]} value={monthlyCount}
           trend={monthDiff !== 0 ? `${monthDiff > 0 ? '+' : ''}${monthDiff}` : undefined} trendUp={monthTrend}
           color="#007AFF"
@@ -159,23 +159,23 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Extra info row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl px-5 py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
+        <div className="rounded-2xl bg-white px-3.5 py-3.5 sm:px-5 sm:py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{lang === 'zh' ? '最常训练' : 'Top Exercise'}</p>
           <p className="text-sm font-bold text-gray-800 mt-1 truncate">{topExercise?.[0] || '-'}</p>
           <p className="text-[10px] text-gray-400 mt-0.5">{topExercise?.[1] || 0} {lang === 'zh' ? '次' : 'times'}</p>
         </div>
-        <div className="bg-white rounded-2xl px-5 py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div className="rounded-2xl bg-white px-3.5 py-3.5 sm:px-5 sm:py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{lang === 'zh' ? '本月完成率' : 'Completion'}</p>
           <p className="text-sm font-bold text-gray-800 mt-1">{monthlySummary.completionRate != null ? `${monthlySummary.completionRate}%` : '—'}</p>
           <p className="text-[10px] text-gray-400 mt-0.5">{monthlySummary.completedSets} {lang === 'zh' ? '个完成组' : 'completed sets'}</p>
         </div>
-        <div className="bg-white rounded-2xl px-5 py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div className="rounded-2xl bg-white px-3.5 py-3.5 sm:px-5 sm:py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{lang === 'zh' ? '平均 RPE' : 'Average RPE'}</p>
           <p className="text-sm font-bold text-gray-800 mt-1">{monthlySummary.averageRpe != null ? monthlySummary.averageRpe.toFixed(1) : '—'}</p>
           <p className="text-[10px] text-gray-400 mt-0.5">{lang === 'zh' ? '主观训练强度 / 10' : 'effort / 10'}</p>
         </div>
-        <div className="bg-white rounded-2xl px-5 py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div className="rounded-2xl bg-white px-3.5 py-3.5 sm:px-5 sm:py-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-400">{latestAssessment?.schemaVersion === 2 ? (lang === 'zh' ? '个人趋势指数' : 'Personal Trend') : (lang === 'zh' ? '体态评分' : 'Posture')}</p>
           <p className="text-sm font-bold text-gray-800 mt-1">{postureScore !== null ? postureScore : latestAssessment?.schemaVersion === 2 ? (lang === 'zh' ? '基线' : 'Baseline') : '-'}</p>
           <p className="text-[10px] text-gray-400 mt-0.5">{latestAssessment?.schemaVersion === 2 ? (lang === 'zh' ? '仅纵向比较' : 'longitudinal only') : '/ 100'}</p>
@@ -218,7 +218,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             onCancelEdit={onCancelEdit} />
         </div>
         <div className="space-y-5">
-          <div className="h-[420px]">
+          <div className="h-[360px] sm:h-[420px]">
             <WorkoutHistory workouts={member.workouts} lang={lang} filterMonth={filterMonth}
               onUpdateWorkout={onUpdateWorkout} onDeleteWorkout={onDeleteWorkout}
               onEditSession={onEditSession} />

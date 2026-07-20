@@ -44,8 +44,8 @@ const MemberProfileEditor: React.FC<MemberProfileEditorProps> = ({ member, lang,
   const fieldClass = 'mt-1.5 w-full rounded-xl border border-black/10 bg-gray-50 px-3.5 py-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-[#007AFF]/40 focus:bg-white focus:ring-4 focus:ring-[#007AFF]/8';
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-gray-950/35 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={zh ? '编辑基础资料' : 'Edit profile'}>
-      <form onSubmit={submit} className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-2xl sm:p-7">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-gray-950/35 p-0 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4" role="dialog" aria-modal="true" aria-label={zh ? '编辑基础资料' : 'Edit profile'}>
+      <form onSubmit={submit} className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-white p-5 shadow-2xl sm:rounded-[28px] sm:p-7">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#5856D6]">Member Profile</p>
@@ -71,7 +71,7 @@ const MemberProfileEditor: React.FC<MemberProfileEditorProps> = ({ member, lang,
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-xs font-bold text-gray-600">
               {zh ? '身高（cm）' : 'Height (cm)'}
               <input type="number" inputMode="decimal" min="100" max="230" step="0.1" value={height} onChange={event => setHeight(event.target.value)} className={fieldClass} />

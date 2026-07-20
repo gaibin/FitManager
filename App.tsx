@@ -176,7 +176,7 @@ const AppContent: React.FC<AppContentProps> = ({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overscroll-contain p-3 pb-24 sm:p-5 sm:pb-24 lg:p-8 lg:pb-8 space-y-6">
+        <main className="flex-1 overflow-y-auto overscroll-contain p-2.5 pb-24 sm:p-5 sm:pb-24 lg:p-8 lg:pb-8 space-y-5 sm:space-y-6">
           {/* 全部页面保持挂载，避免切换时丢失状态 */}
           <div style={{ display: location.pathname === '/' ? 'block' : 'none' }} className="animate-in">
             {selectedMember ? (
@@ -258,15 +258,15 @@ const AppContent: React.FC<AppContentProps> = ({
         </main>
 
         <nav aria-label={lang === 'zh' ? '移动端主导航' : 'Mobile navigation'}
-          className="glass fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-black/[0.07] px-2 pt-2 shadow-[0_-10px_35px_rgba(20,20,35,0.08)] lg:hidden"
+          className="glass fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-black/[0.07] px-1 pt-1.5 shadow-[0_-10px_35px_rgba(20,20,35,0.08)] lg:hidden"
           style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
           {NAV_ITEMS.map(item => {
             const active = location.pathname === item.path;
             return (
               <button key={item.path} type="button" onClick={() => navigate(item.path)}
-                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-bold transition ${active ? 'bg-[#007AFF]/8 text-[#007AFF]' : 'text-gray-400'}`}>
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} viewBox="0 0 24 24"><path d={item.icon} /></svg>
-                <span>{lang === 'zh' ? item.labelZh : item.labelEn}</span>
+                className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[9px] font-bold transition sm:text-[10px] ${active ? 'bg-[#007AFF]/8 text-[#007AFF]' : 'text-gray-400'}`}>
+                <svg className="h-[18px] w-[18px] sm:h-5 sm:w-5" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.6} viewBox="0 0 24 24"><path d={item.icon} /></svg>
+                <span className="max-w-full truncate">{lang === 'zh' ? item.labelZh : item.labelEn}</span>
               </button>
             );
           })}
