@@ -16,7 +16,7 @@ import { useAuth } from './hooks/useAuth';
 import { useMembers } from './hooks/useMembers';
 import { useWorkouts } from './hooks/useWorkouts';
 import { useUndo } from './components/UndoProvider';
-import { Language, PostureAssessment, Workout } from './types';
+import { Language, NewMemberProfile, PostureAssessment, Workout } from './types';
 import { TRANSLATIONS } from './constants';
 
 // 按需加载：Report 组件 + PDF 生成库（jsPDF/html2canvas）只在导出时加载
@@ -44,7 +44,7 @@ interface AppContentProps {
   user: any;
   isAdmin: boolean;
   handleLogout: () => Promise<void>;
-  handleAddMember: (name: string) => Promise<void>;
+  handleAddMember: (profile: NewMemberProfile) => Promise<void>;
   handleDeleteMember: (id: string) => Promise<void>;
   handleSaveSession: (workouts: (Omit<Workout, 'id'> & { id?: string })[], mode: 'add' | 'edit') => Promise<void>;
   handleUpdateWorkout: (workout: Workout) => Promise<void>;
@@ -289,7 +289,7 @@ const App: React.FC = () => {
     onMemberDeleted: (m) => undo.pushUndo({
       key: `del-member-${m.id}`,
       message: `${m.name} ${lang === 'zh' ? '已删除' : 'deleted'}`,
-      undo: async () => { await db.addMember(m.name, { joinDate: m.joinDate, avatar: m.avatar, gender: m.gender, heightCm: m.heightCm }); members.setMembers(prev => [...prev, m]); },
+      undo: async () => { await db.addMember(m.name, { joinDate: m.joinDate, avatar: m.avatar, gender: m.gender, heightCm: m.heightCm, weightKg: m.weightKg }); members.setMembers(prev => [...prev, m]); },
     }),
   });
   const workouts = useWorkouts({

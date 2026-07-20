@@ -9,15 +9,16 @@ class MockDatabase {
     return new Promise((resolve) => setTimeout(() => resolve(this.members), 300));
   }
 
-  async addMember(name: string): Promise<Member> {
+  async addMember(name: string, options?: { gender?: 'male' | 'female'; heightCm?: number; weightKg?: number }): Promise<Member> {
     return new Promise((resolve) => {
       const newMember: Member = {
         id: Math.random().toString(36).substr(2, 9),
         name,
         avatar: `https://ui-avatars.com/api/?name=${name}&background=random`,
         joinDate: new Date().toISOString().split('T')[0],
-        gender: 'male',
-        heightCm: 170,
+        gender: options?.gender || 'male',
+        heightCm: options?.heightCm || 170,
+        weightKg: options?.weightKg,
         workouts: [],
         assessments: [],
       };
@@ -41,7 +42,7 @@ class MockDatabase {
     });
   }
 
-  async updateMember(memberId: string, updates: Partial<Pick<Member, 'gender' | 'heightCm' | 'name' | 'avatar'>>): Promise<void> {
+  async updateMember(memberId: string, updates: Partial<Pick<Member, 'gender' | 'heightCm' | 'weightKg' | 'name' | 'avatar'>>): Promise<void> {
     return new Promise((resolve) => {
       const member = this.members.find(m => m.id === memberId);
       if (member) Object.assign(member, updates);

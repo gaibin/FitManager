@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Member, Language, User } from '../types';
+import { Member, Language, NewMemberProfile, User } from '../types';
 import { TRANSLATIONS } from '../constants';
 
 interface SidebarProps {
   members: Member[];
   selectedMemberId: string | null;
   onSelectMember: (id: string | null) => void;
-  onAddMember?: (name: string) => Promise<void>;
+  onAddMember?: (profile: NewMemberProfile) => Promise<void>;
   onDeleteMember?: (id: string) => void;
   memberLoadError?: string;
   memberLoading?: boolean;
@@ -35,6 +35,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newGender, setNewGender] = useState<'male' | 'female'>('male');
+  const [newHeight, setNewHeight] = useState('');
+  const [newWeight, setNewWeight] = useState('');
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,6 +50,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     e.preventDefault();
     const trimmed = newName.trim();
     if (!trimmed) return;
+    const heightCm = Number(newHeight);
+    const weightKg = Number(newWeight);
+    if (!Number.isFinite(heightCm) || heightCm < 100 || heightCm > 230) {
+      setError(lang === 'zh' ? '请输入 100–230 cm 之间的身高' : 'Enter a height between 100 and 230 cm');
+      return;
+    }
+    if (!Number.isFinite(weightKg) || weightKg < 25 || weightKg > 300) {
+      setError(lang === 'zh' ? '请输入 25–300 kg 之间的体重' : 'Enter a weight between 25 and 300 kg');
+      return;
+    }
     if (members.some(m => m.name.toLowerCase() === trimmed.toLowerCase())) {
       setError(TRANSLATIONS.memberExists[lang]);
       setTimeout(() => setError(''), 3000);
@@ -56,8 +69,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     setIsSubmitting(true);
     setError('');
     try {
-      await onAddMember(trimmed);
+      await onAddMember({ name: trimmed, gender: newGender, heightCm, weightKg });
       setNewName('');
+      setNewGender('male');
+      setNewHeight('');
+      setNewWeight('');
       setIsAdding(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : (lang === 'zh' ? '新增会员失败，请稍后重试' : 'Failed to add member. Please try again.'));
@@ -119,6 +135,23 @@ const Sidebar: React.FC<SidebarProps> = ({
         <form onSubmit={handleAddSubmit} className="px-4 pt-2 pb-1">
           <input autoFocus type="text" name="new-member-display-name" autoComplete="off" value={newName} onChange={e => setNewName(e.target.value)} placeholder={TRANSLATIONS.newMemberName[lang]}
             className="w-full bg-black/[0.03] border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/10 transition-all text-gray-800 mb-1.5" />
+          <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+            <select value={newGender} onChange={event => setNewGender(event.target.value as 'male' | 'female')}
+              className="col-span-2 bg-black/[0.03] border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-700 outline-none focus:border-[#007AFF]">
+              <option value="male">{lang === 'zh' ? '男' : 'Male'}</option>
+              <option value="female">{lang === 'zh' ? '女' : 'Female'}</option>
+            </select>
+            <label className="relative">
+              <input type="number" min="100" max="230" step="0.1" value={newHeight} onChange={event => setNewHeight(event.target.value)}
+                placeholder={lang === 'zh' ? '身高' : 'Height'} className="w-full bg-black/[0.03] border border-gray-200 rounded-xl px-3 py-2 pr-8 text-xs outline-none focus:border-[#007AFF]" />
+              <span className="absolute right-2 top-2 text-[10px] text-gray-400">cm</span>
+            </label>
+            <label className="relative">
+              <input type="number" min="25" max="300" step="0.1" value={newWeight} onChange={event => setNewWeight(event.target.value)}
+                placeholder={lang === 'zh' ? '体重' : 'Weight'} className="w-full bg-black/[0.03] border border-gray-200 rounded-xl px-3 py-2 pr-8 text-xs outline-none focus:border-[#007AFF]" />
+              <span className="absolute right-2 top-2 text-[10px] text-gray-400">kg</span>
+            </label>
+          </div>
           {error && <p className="text-[#FF3B30] text-[11px] mb-1.5 font-medium">{error}</p>}
           <button type="submit" disabled={isSubmitting} className="w-full bg-[#007AFF] hover:bg-[#0066d6] disabled:opacity-60 text-white text-xs font-semibold py-2 rounded-xl transition-colors scale-press">
             {isSubmitting ? (lang === 'zh' ? '正在添加…' : 'Adding…') : TRANSLATIONS.addMember[lang]}
@@ -155,7 +188,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate text-gray-800">{m.name}</p>
-              <p className="text-[10px] text-gray-400 truncate">{m.heightCm}cm &middot; {m.gender === 'male' ? (lang === 'zh' ? '\u7537' : 'Male') : (lang === 'zh' ? '\u5973' : 'Female')}</p>
+              <p className="text-[10px] text-gray-400 truncate">{m.heightCm}cm{m.weightKg ? ` · ${m.weightKg}kg` : ''} &middot; {m.gender === 'male' ? (lang === 'zh' ? '\u7537' : 'Male') : (lang === 'zh' ? '\u5973' : 'Female')}</p>
             </div>
             {selectedMemberId === m.id && <div className="w-1.5 h-1.5 rounded-full bg-[#007AFF]" />}
             {onDeleteMember && (

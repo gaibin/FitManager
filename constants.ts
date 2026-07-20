@@ -152,6 +152,7 @@ export const INITIAL_MEMBERS: Member[] = SEED_MEMBERS.map((s, idx) => ({
   joinDate: s.joinDate,
   gender: s.gender || 'male',
   heightCm: s.heightCm || 170,
+  weightKg: s.weightKg,
   workouts: s.workouts.map((w, wIdx) => ({
     ...w,
     id: `${idx + 1}-${wIdx}`

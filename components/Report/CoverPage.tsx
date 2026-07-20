@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Language, Member } from '../../types';
 import { MetricPill, REPORT, ReportFooter, reportPageStyle } from './reportTheme';
+import { getCurrentBodyWeight } from '../../services/bodyWeightAnalytics';
 
 interface CoverPageProps { member: Member; lang: Language; studioName: string; studioLogo?: string; coachName?: string; accentColor?: string; }
 
@@ -27,6 +28,7 @@ const CoverPage: React.FC<CoverPageProps> = ({ member, lang, studioName, studioL
     return { month: month.slice(5), volume: member.workouts.filter(item => item.date.startsWith(month)).reduce((sum, item) => sum + item.weight * item.sets * item.reps, 0) / 1000 };
   });
   const priorities = assessment?.recommendation?.priorities || [];
+  const currentBodyWeight = getCurrentBodyWeight(member);
 
   return (
     <div style={reportPageStyle}>
@@ -44,10 +46,11 @@ const CoverPage: React.FC<CoverPageProps> = ({ member, lang, studioName, studioL
         <p style={{ margin: '13px 0 0', maxWidth: 570, color: REPORT.muted, fontSize: 11, lineHeight: 1.55 }}>{lang === 'zh' ? '将可追溯节点、原始角度、定位不确定度和四周训练进阶整合在同一份会员报告中。' : 'A member-facing synthesis of traceable landmarks, raw angles, localisation uncertainty, and a four-week training progression.'}</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr .9fr .9fr .8fr', borderTop: `1px solid ${REPORT.line}`, borderBottom: `1px solid ${REPORT.line}`, padding: '16px 0', marginBottom: 22 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.25fr .65fr .65fr .9fr .75fr', borderTop: `1px solid ${REPORT.line}`, borderBottom: `1px solid ${REPORT.line}`, padding: '16px 0', marginBottom: 22 }}>
         {[
           [lang === 'zh' ? '会员姓名' : 'MEMBER', member.name],
           [lang === 'zh' ? '身高' : 'HEIGHT', `${member.heightCm} cm`],
+          [lang === 'zh' ? '体重' : 'WEIGHT', currentBodyWeight == null ? '—' : `${currentBodyWeight.toFixed(1)} kg`],
           [lang === 'zh' ? '入会日期' : 'JOINED', member.joinDate],
           [lang === 'zh' ? '报告日期' : 'REPORT', reportDate],
         ].map(([label, value], index) => <div key={label} style={{ paddingLeft: index ? 16 : 0, borderLeft: index ? `1px solid ${REPORT.line}` : 0 }}><p style={{ margin: 0, color: REPORT.muted, fontSize: 8, fontWeight: 750, letterSpacing: .7 }}>{label}</p><p style={{ margin: '6px 0 0', color: REPORT.ink, fontSize: 13, fontWeight: 800 }}>{value}</p></div>)}

@@ -15,6 +15,9 @@ export const seedSampleData = async () => {
     const member = await db.addMember(seed.name, {
       joinDate: seed.joinDate,
       avatar: seed.avatar,
+      gender: seed.gender,
+      heightCm: seed.heightCm,
+      weightKg: seed.weightKg,
     });
     if (seed.workouts.length > 0) {
       await db.addWorkouts(member.id, seed.workouts);

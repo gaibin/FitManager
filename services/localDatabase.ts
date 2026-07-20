@@ -13,6 +13,7 @@ interface MemberRow {
   joinDate: string;
   gender: string;
   heightCm: number;
+  weightKg?: number;
   photoUrl?: string;
 }
 
@@ -28,6 +29,7 @@ interface WorkoutRow {
   rpe?: number;
   completed?: boolean;
   note?: string;
+  bodyWeightKg?: number;
 }
 
 interface AssessmentRow {
@@ -97,6 +99,7 @@ class LocalDatabase {
         rpe: w.rpe,
         completed: w.completed,
         note: w.note,
+        bodyWeightKg: w.bodyWeightKg,
       });
     }
 
@@ -113,6 +116,7 @@ class LocalDatabase {
       joinDate: m.joinDate,
       gender: (m.gender as 'male' | 'female') || 'male',
       heightCm: m.heightCm || 170,
+      weightKg: m.weightKg,
       workouts: workoutsByMember[m.id] || [],
       assessments: assessmentsByMember[m.id] || [],
       photoUrl: m.photoUrl,
@@ -121,7 +125,7 @@ class LocalDatabase {
 
   async addMember(
     name: string,
-    options?: { joinDate?: string; avatar?: string; photoUrl?: string; gender?: string; heightCm?: number }
+    options?: { joinDate?: string; avatar?: string; photoUrl?: string; gender?: string; heightCm?: number; weightKg?: number }
   ): Promise<Member> {
     const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9);
     const joinDate = options?.joinDate || new Date().toISOString().split('T')[0];
@@ -136,6 +140,7 @@ class LocalDatabase {
       joinDate,
       gender: options?.gender || 'male',
       heightCm: options?.heightCm || 170,
+      weightKg: options?.weightKg,
       photoUrl: options?.photoUrl,
     };
 
@@ -148,6 +153,7 @@ class LocalDatabase {
       joinDate: row.joinDate,
       gender: row.gender as 'male' | 'female',
       heightCm: row.heightCm,
+      weightKg: row.weightKg,
       workouts: [],
       assessments: [],
       photoUrl: row.photoUrl,
@@ -164,7 +170,7 @@ class LocalDatabase {
     await dexieDb.members.update(memberId, { photoUrl });
   }
 
-  async updateMember(memberId: string, updates: Partial<Pick<MemberRow, 'gender' | 'heightCm' | 'name' | 'avatar'>>): Promise<void> {
+  async updateMember(memberId: string, updates: Partial<Pick<MemberRow, 'gender' | 'heightCm' | 'weightKg' | 'name' | 'avatar'>>): Promise<void> {
     await dexieDb.members.update(memberId, updates);
   }
 
@@ -189,6 +195,7 @@ class LocalDatabase {
         rpe: w.rpe,
         completed: w.completed,
         note: w.note,
+        bodyWeightKg: w.bodyWeightKg,
       };
       await dexieDb.workouts.put(row);
       newWorkouts.push({ id, ...w });
@@ -207,6 +214,7 @@ class LocalDatabase {
       rpe: workout.rpe,
       completed: workout.completed,
       note: workout.note,
+      bodyWeightKg: workout.bodyWeightKg,
     });
   }
 

@@ -193,6 +193,7 @@ export function getMemberCoachBrief(member: Member, lang: Language, question?: s
       rpe: item.rpe,
       completed: item.completed,
       note: item.note,
+      bodyWeightKg: item.bodyWeightKg,
     }));
   return postAI<MemberCoachBrief>('/api/ai/member-coach', {
     language: lang === 'zh' ? 'zh-CN' : 'en',
@@ -200,6 +201,7 @@ export function getMemberCoachBrief(member: Member, lang: Language, question?: s
       name: member.name,
       gender: member.gender,
       heightCm: member.heightCm,
+      weightKg: member.weightKg,
       joinDate: member.joinDate,
     },
     recentWorkouts,

@@ -3,10 +3,14 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Member } from '../types';
+import type { Member, NewMemberProfile } from '../types';
 
 interface UseMembersOptions {
-  db: { getMembers: () => Promise<Member[]>; addMember: (name: string) => Promise<Member>; deleteMember: (id: string) => Promise<void> };
+  db: {
+    getMembers: () => Promise<Member[]>;
+    addMember: (name: string, options?: Omit<NewMemberProfile, 'name'>) => Promise<Member>;
+    deleteMember: (id: string) => Promise<void>;
+  };
   isAdmin: boolean;
   userId?: string;
   onMemberDeleted?: (member: Member) => void;
@@ -38,8 +42,9 @@ export function useMembers({ db, isAdmin, userId, onMemberDeleted }: UseMembersO
 
   useEffect(() => { void reload(); }, [reload]);
 
-  const handleAddMember = useCallback(async (name: string) => {
-    const newMember = await db.addMember(name);
+  const handleAddMember = useCallback(async (profile: NewMemberProfile) => {
+    const { name, ...details } = profile;
+    const newMember = await db.addMember(name, details);
     setMembers(prev => [...prev, newMember]);
     setSelectedMemberId(newMember.id);
   }, [db]);

@@ -22,6 +22,15 @@ export interface Workout {
   rpe?: number;
   completed?: boolean;
   note?: string;
+  /** Member body weight recorded for this training date, separate from exercise load. */
+  bodyWeightKg?: number;
+}
+
+export interface NewMemberProfile {
+  name: string;
+  gender: 'male' | 'female';
+  heightCm: number;
+  weightKg: number;
 }
 
 export interface PostureAssessment {
@@ -298,6 +307,8 @@ export interface Member {
   joinDate: string;
   gender: 'male' | 'female';
   heightCm: number;
+  /** Baseline/profile body weight. Daily measurements live on workout records. */
+  weightKg?: number;
   workouts: Workout[];
   assessments: PostureAssessment[];
   photoUrl?: string; // For progress pics
