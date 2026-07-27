@@ -1,0 +1,32 @@
+name: Supabase Keep-Alive
+
+# 每天定时向 Supabase 写入一行心跳，防止免费版项目因 7 天无活动被暂停/回收。
+# 凭证使用 Supabase 公开 anon key（与前端 bundle 中一致），无需额外配置 Secrets 即可直接运行。
+# 如需更干净的做法，可改为引用仓库 Secrets（见仓库说明），本文件当前为内联版。
+on:
+  schedule:
+    - cron: '23 2 * * *'   # 每日 02:23 UTC（北京 10:23），远在 7 天活跃窗口内
+  workflow_dispatch: {}    # 允许在 Actions 页面手动 Run workflow 立即测试
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_URL: https://jngwacyokgazbnznntzk.supabase.co
+  SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpuZ3dhY3lva2dhemJuem5udHprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwODg5OTcsImV4cCI6MjA5OTY2NDk5N30.TNcJ4IrDo2dvxAJDOd9VLqLGL_yKeXvxUrNaXYoK9PA
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装 Supabase 客户端
+        run: npm install @supabase/supabase-js@^2
+
+      - name: 写入心跳（保活）
+        run: node scripts/keepalive.mjs
