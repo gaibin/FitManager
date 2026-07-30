@@ -123,10 +123,32 @@ async function upsert(count) {
 }
 
 async function main() {
-  const prev = await readCount();
-  const row = await upsert(prev + 1);
+  // 1) 优先写入心跳（含累计计数）
+  try {
+    const prev = await readCount();
+    const row = await upsert(prev + 1);
+    console.log(
+      `[keepalive] OK — 心跳已写入，时间 ${row?.last_ping}，累计保活次数 ${row?.ping_count}`
+    );
+    return;
+  } catch (e) {
+    const msg = e?.message || '';
+    // 只有“表不存在”才走兜底；其他错误（凭证/网络/RLS）照常抛出
+    if (!/不存在|404|PGRST106/i.test(msg)) throw e;
+  }
+
+  // 2) 兜底：心跳表尚未创建时，读取 members 一行制造一次数据库请求，
+  //    同样能让项目保持“活跃”、不被回收（members 表已存在且 anon 可读）。
+  const res = await fetch(`${restBase}/members?select=id&limit=1`, {
+    headers: baseHeaders,
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`保活失败：读取 members 返回 HTTP ${res.status} ${t}`);
+  }
   console.log(
-    `[keepalive] OK — 心跳已写入，时间 ${row?.last_ping}，累计保活次数 ${row?.ping_count}`
+    '[keepalive] OK — 心跳表未创建，已用 SELECT members 完成保活。' +
+      '（可选：在 Supabase 执行 services/keepalive_heartbeat.sql 以启用心跳计数）'
   );
 }
 
