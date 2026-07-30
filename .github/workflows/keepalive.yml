@@ -25,8 +25,5 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 安装 Supabase 客户端
-        run: npm install @supabase/supabase-js@^2
-
       - name: 写入心跳（保活）
         run: node scripts/keepalive.mjs
