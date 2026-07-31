@@ -1,24 +1,37 @@
--- ============================================================
--- Supabase 免费版防回收「心跳表」
--- 作用：每天由 keepalive 脚本 upsert 一行，制造数据库写请求，
---       使项目始终处于“活跃”状态，不会被 Supabase 因 7 天无活动而暂停/回收。
--- 使用：在 Supabase 控制台 -> SQL Editor 中「一次性」执行本文件即可。
--- ============================================================
+-- Secure Supabase keep-alive. Run once in SQL Editor.
+-- GitHub Actions calls the fixed RPC with anon key; anon/authenticated
+-- cannot write the heartbeat table directly.
 
 create table if not exists public.heartbeats (
-  id          int         primary key default 1,
-  last_ping   timestamptz not null default now(),
-  ping_count  bigint      not null default 1,
-  updated_at  timestamptz not null default now()
+  id int primary key default 1,
+  last_ping timestamptz not null default now(),
+  ping_count bigint not null default 1,
+  updated_at timestamptz not null default now()
 );
 
--- 启用行级安全（与项目现有风格一致），并放行 anon/authenticated 的读写，
--- 这样保活脚本即使用前端同款 anon key 也能写入，无需暴露 service_role 密钥。
 alter table public.heartbeats enable row level security;
+revoke all on table public.heartbeats from anon, authenticated;
 
-drop policy if exists "heartbeats_anon_access" on public.heartbeats;
-create policy "heartbeats_anon_access" on public.heartbeats
-  for all to anon, authenticated
-  using (true) with check (true);
+create or replace function public.keepalive_ping()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result public.heartbeats;
+begin
+  insert into public.heartbeats (id, last_ping, ping_count, updated_at)
+  values (1, now(), 1, now())
+  on conflict (id) do update
+    set last_ping = excluded.last_ping,
+        ping_count = public.heartbeats.ping_count + 1,
+        updated_at = excluded.updated_at
+  returning * into result;
 
-grant select, insert, update on table public.heartbeats to anon, authenticated;
+  return jsonb_build_object('last_ping', result.last_ping, 'ping_count', result.ping_count);
+end;
+$$;
+
+revoke all on function public.keepalive_ping() from public;
+grant execute on function public.keepalive_ping() to anon, authenticated;
