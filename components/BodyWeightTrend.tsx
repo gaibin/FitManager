@@ -14,7 +14,7 @@ const BodyWeightTrend: React.FC<{ member: Member; lang: Language }> = ({ member,
   const change = latest.weightKg - first.weightKg;
 
   return (
-    <section className="rounded-2xl bg-white p-5" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+    <section className="rounded-2xl bg-white p-4 sm:p-5" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">BODY WEIGHT</p>
@@ -25,7 +25,7 @@ const BodyWeightTrend: React.FC<{ member: Member; lang: Language }> = ({ member,
           {data.length > 1 && <p className={`text-[10px] font-semibold ${change > 0 ? 'text-[#FF9500]' : change < 0 ? 'text-[#34C759]' : 'text-gray-400'}`}>{change > 0 ? '+' : ''}{change.toFixed(1)} kg</p>}
         </div>
       </div>
-      <div className="h-52">
+      <div className="h-44 sm:h-52">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 10, left: -16, bottom: 0 }}>
             <CartesianGrid stroke="#EEF1F5" strokeDasharray="3 3" vertical={false} />

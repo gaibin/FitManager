@@ -166,7 +166,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
+    <div className="rounded-2xl bg-white p-4 sm:p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
@@ -185,12 +185,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
       </div>
 
       <div className="grid grid-cols-1 gap-2 mb-4 sm:grid-cols-2">
-        <label className="flex items-center gap-2">
+        <label className="flex flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:gap-2">
           <span className="text-xs font-semibold text-gray-500 shrink-0">{TRANSLATIONS.sessionDate[lang]}</span>
           <input type="date" value={date} onChange={event => setDate(event.target.value)}
             className="min-w-0 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#007AFF]/30 focus:ring-2 focus:ring-[#007AFF]/10 flex-1 transition-all" />
         </label>
-        <label className="flex items-center gap-2">
+        <label className="flex flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:gap-2">
           <span className="text-xs font-semibold text-gray-500 shrink-0">{lang === 'zh' ? '当天体重' : 'Body weight'}</span>
           <div className="relative flex-1">
             <input type="number" min="25" max="300" step="0.1" value={bodyWeightKg} onChange={event => setBodyWeightKg(event.target.value)}
@@ -296,7 +296,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
               </span>
               {item.note && <span title={item.note} className="max-w-[160px] truncate text-gray-400">{item.note}</span>}
               <button onClick={() => setSession(previous => previous.filter((_, itemIndex) => itemIndex !== index))}
-                className="text-gray-400 hover:text-[#FF3B30] transition-colors opacity-0 group-hover:opacity-100 p-0.5" aria-label={lang === 'zh' ? '删除动作' : 'Remove exercise'}>
+                className="p-1 text-gray-400 opacity-100 transition-colors hover:text-[#FF3B30] sm:opacity-0 sm:group-hover:opacity-100" aria-label={lang === 'zh' ? '删除动作' : 'Remove exercise'}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>

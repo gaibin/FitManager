@@ -66,7 +66,7 @@ const HistoryChart: React.FC<HistoryChartProps> = ({ workouts, lang }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
+    <div className="rounded-2xl bg-white p-4 sm:p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' }}>
       <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-5 gap-4">
         <div>
           <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
@@ -114,7 +114,7 @@ const HistoryChart: React.FC<HistoryChartProps> = ({ workouts, lang }) => {
             : (lang === 'zh' ? '当前动作没有负重数据，请切换到“完成组数”查看体态训练。' : 'No loaded data. Use Completed sets for posture exercises.')}
         </div>
       ) : (
-        <div className="h-[300px] w-full">
+        <div className="h-[240px] w-full sm:h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F2F2F7" vertical={false} />
